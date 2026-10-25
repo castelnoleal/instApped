@@ -5,7 +5,8 @@ import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import worker from "../cloudflare-worker/worker.js";
-import { issueLicense, verifyLicense, readSession, verifyWebhook, premiumFeaturesUsed, prices } from "../cloudflare-worker/billing.js";
+import { issueLicense, verifyLicense, readSession, verifyWebhook, premiumFeaturesUsed, prices, APP_PASS_EXP } from "../cloudflare-worker/billing.js";
+import { adminIssue } from "../cloudflare-worker/owner.js";
 
 const SECRET = "test-license-secret-0123456789";
 const OWNER = "owner-token-abc";
@@ -100,11 +101,14 @@ test("pricing overrides are validated", () => {
 
 // -------------------------------------------------------- plans & checkout
 
-test("GET /plans lists three plans in PHP and reports payment readiness", async () => {
+test("GET /plans lists the plans in PHP, with the one-time App Pass, and reports payment readiness", async () => {
   const { status, json } = await call("/plans");
   assert.equal(status, 200);
   assert.equal(json.currency, "PHP");
-  assert.deepEqual(json.plans.map((p) => p.id), ["free", "pro", "business"]);
+  assert.deepEqual(json.plans.map((p) => p.id), ["free", "app", "pro", "business"]);
+  const pass = json.plans.find((p) => p.id === "app");
+  assert.equal(pass.oneTime, true);
+  assert.deepEqual(pass.prices, { once: 149000 });
   assert.equal(json.paymentsEnabled, true);
   delete env.PAYMONGO_SECRET_KEY;
   assert.equal((await call("/plans")).json.paymentsEnabled, false);
@@ -260,5 +264,82 @@ test("free plan daily build limit", async () => {
 
 test("health reports the premium revision", async () => {
   const { json } = await call("/health");
-  assert.equal(json.revision, "instapped-editions-v1");
+  assert.equal(json.revision, "instapped-app-pass-v1");
+});
+
+// ------------------------------------------------------------- App Pass
+
+test("App Pass keys carry their package ID, which can't be changed", async () => {
+  const key = await issueLicense(SECRET, { plan: "app", exp: APP_PASS_EXP, ref: "cs_a", pkg: "com.shop.app" });
+  const v = await verifyLicense(SECRET, key);
+  assert.equal(v.valid, true);
+  assert.equal(v.plan, "app");
+  assert.equal(v.pkg, "com.shop.app");
+  const sig = key.split(".")[2];
+  const forged = Buffer.from(JSON.stringify({ v: 1, plan: "app", exp: APP_PASS_EXP, ref: "cs_a", pkg: "com.other.app" })).toString("base64url");
+  assert.equal((await verifyLicense(SECRET, `IAL1.${forged}.${sig}`)).valid, false, "changing the package breaks the signature");
+  await assert.rejects(issueLicense(SECRET, { plan: "app", exp: APP_PASS_EXP, ref: "x" }), /package ID/);
+  await assert.rejects(issueLicense(SECRET, { plan: "app", exp: APP_PASS_EXP, ref: "x", pkg: "Not A Package" }), /package ID/);
+});
+
+test("App Pass checkout charges the one-time price and needs a valid package ID", async () => {
+  const bad = await call("/checkout", { method: "POST", body: { plan: "app", packageName: "nope" } });
+  assert.equal(bad.status, 400);
+  assert.match(bad.json.error, /package ID/);
+  const { status, json } = await call("/checkout", { method: "POST", body: { plan: "app", period: "monthly", packageName: "com.shop.app", amount: 1 } });
+  assert.equal(status, 200);
+  const a = sessions.get(json.sessionId).data.attributes;
+  assert.equal(a.line_items[0].amount, 149000, "the price comes from the server, not the request");
+  assert.match(a.line_items[0].name, /App Pass \(com\.shop\.app\)/);
+  assert.deepEqual(a.metadata, { product: "instapped", plan: "app", period: "once", pkg: "com.shop.app" });
+});
+
+test("a paid App Pass issues a permanent key for that app, and doesn't stack onto a subscription", async () => {
+  const { json } = await call("/checkout", { method: "POST", body: { plan: "app", packageName: "com.shop.app" } });
+  markPaid(json.sessionId);
+  const pro = await issueLicense(SECRET, { plan: "pro", exp: Date.now() + 10 * 86400000, ref: "cs_pro" });
+  const c = await call("/license/claim", { method: "POST", body: { sessionId: json.sessionId, currentKey: pro } });
+  assert.equal(c.status, 200);
+  assert.equal(c.json.plan, "app");
+  assert.equal(c.json.pkg, "com.shop.app");
+  assert.equal(c.json.exp, APP_PASS_EXP);
+  const again = await call("/license/claim", { method: "POST", body: { sessionId: json.sessionId } });
+  assert.equal(again.json.key, c.json.key, "claiming twice returns the same key");
+  assert.equal(again.json.pkg, "com.shop.app");
+  const v = await call("/license/verify", { method: "POST", body: { key: c.json.key } });
+  assert.equal(v.json.valid, true);
+  assert.equal(v.json.plan, "app");
+  assert.equal(v.json.pkg, "com.shop.app");
+  assert.equal(v.json.name, "App Pass");
+});
+
+test("an App Pass unlocks Pro features only for its own app", async () => {
+  const key = await issueLicense(SECRET, { plan: "app", exp: APP_PASS_EXP, ref: "cs_a", pkg: "com.test.app" });
+  const r = await call("/build", { method: "POST", body: { ...baseBuild, licenseKey: key, signing: true, themeColor: "#FFFFFF" } });
+  assert.equal(r.status, 202);
+  assert.equal(r.json.tier, "pro");
+  assert.equal(manifestOf().brandBadge, false);
+  assert.equal(manifestOf().signing, true);
+  const other = await call("/build", { method: "POST", body: { ...baseBuild, packageName: "com.other.app", licenseKey: key, signing: true } });
+  assert.equal(other.status, 402);
+  assert.match(other.json.error, /App Pass is for com\.test\.app/);
+  const freeOther = await call("/build", { method: "POST", body: { ...baseBuild, packageName: "com.other.app", licenseKey: key } });
+  assert.equal(freeOther.status, 202, "free options still build for other apps");
+  assert.equal(freeOther.json.tier, "free");
+});
+
+test("an App Pass build isn't held to the free daily limit", async () => {
+  env.FREE_DAILY_BUILDS = "1";
+  const key = await issueLicense(SECRET, { plan: "app", exp: APP_PASS_EXP, ref: "cs_a", pkg: "com.test.app" });
+  for (let i = 0; i < 3; i++) assert.equal((await call("/build", { method: "POST", body: { ...baseBuild, licenseKey: key } })).status, 202);
+});
+
+test("the owner can issue a complimentary App Pass", async () => {
+  await assert.rejects(adminIssue(env, { plan: "app" }), /package ID/);
+  const out = await adminIssue(env, { plan: "app", pkg: "com.gift.app", note: "launch partner" });
+  assert.equal(out.plan, "app");
+  assert.equal(out.pkg, "com.gift.app");
+  assert.equal(out.name, "App Pass");
+  const v = await verifyLicense(SECRET, out.key);
+  assert.equal(v.pkg, "com.gift.app");
 });

@@ -19,7 +19,7 @@ const MAX_ICON_BASE64 = 8_000_000;
 const MAX_SPLASH_BASE64 = 11_000_000;
 const CHUNK_CHARS = 800_000;
 // Re-deploy to verify the live GitHub and signing secret configuration.
-const BUILD_BRIDGE_REVISION = "instapped-editions-v1";
+const BUILD_BRIDGE_REVISION = "instapped-app-pass-v1";
 const SIGNING_ACCESS_HEADER = "X-Castel-Signing-Access";
 
 async function signingTokenMatches(candidate, expected) {
@@ -151,7 +151,7 @@ export default {
     if (u.pathname === "/checkout" && request.method === "POST") {
       try {
         const b = await request.json().catch(() => ({}));
-        const out = await createCheckout(env, { plan: String(b.plan || ""), period: String(b.period || ""), email: b.email, factoryUrl: env.FACTORY_URL || ORIGIN });
+        const out = await createCheckout(env, { plan: String(b.plan || ""), period: String(b.period || ""), email: b.email, packageName: String(b.packageName || ""), factoryUrl: env.FACTORY_URL || ORIGIN });
         return reply({ ok: true, ...out });
       } catch (e) { return reply({ ok: false, error: e.message || "Checkout failed." }, e.status && (e.status < 500 || e.status === 503) ? e.status : 502); }
     }
@@ -172,7 +172,7 @@ export default {
       if (v.valid && v.ref && env.LICENSES) {
         try { if (await env.LICENSES.get("revoked:" + v.ref)) return reply({ ok: true, valid: false, plan: "free", exp: null, expired: false, revoked: true, reason: "This license was revoked. Contact support.", name: "Free" }); } catch {}
       }
-      return reply({ ok: true, valid: v.valid, plan: v.plan || "free", exp: v.exp || null, expired: Boolean(v.expired), reason: v.valid ? "" : v.reason, name: v.plan ? PLAN_INFO[v.plan].name : "Free" });
+      return reply({ ok: true, valid: v.valid, plan: v.plan || "free", exp: v.exp || null, ...(v.pkg ? { pkg: v.pkg } : {}), expired: Boolean(v.expired), reason: v.valid ? "" : v.reason, name: v.plan ? PLAN_INFO[v.plan].name : "Free" });
     }
     if (u.pathname === "/webhooks/paymongo" && request.method === "POST") {
       const raw = await request.text();
@@ -265,7 +265,7 @@ export default {
         const signingAccess = String(b.signingAccessToken || request.headers.get(SIGNING_ACCESS_HEADER) || "");
         // Plan enforcement happens here, on the server, so it can't be skipped from the page.
         const tierInfo = (await isOwnerSession(env, request)) ? { tier: "business", owner: true }
-          : await resolveTier(env, { licenseKey: String(b.licenseKey || request.headers.get("X-Instapped-License") || ""), ownerToken: signingAccess });
+          : await resolveTier(env, { licenseKey: String(b.licenseKey || request.headers.get("X-Instapped-License") || ""), ownerToken: signingAccess, packageName });
         const tier = tierInfo.tier;
         // Test builds publish to the shared test release, so only the owner may request them.
         if (testBuild && !tierInfo.owner) return reply({ok:false,error:"Test builds are reserved for the factory owner."},403);
