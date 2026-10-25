@@ -83,7 +83,7 @@ try {
     // Owner tools: status, issue, look up, revoke — against the real worker.
     await page.click('nav button[data-view=owner]');
     await page.waitForFunction(() => document.querySelectorAll('#oStat div').length > 3);
-    assert((await page.locator('#oRev').textContent()).includes('instapped-editions-v1'), 'owner tools show the build service revision');
+    assert((await page.locator('#oRev').textContent()).includes('instapped-app-pass-v1'), 'owner tools show the build service revision');
     assert((await page.locator('#oStat').textContent()).includes('License signing'), 'owner tools show configuration status');
     await page.selectOption('#oPlan', 'business');
     await page.fill('#oDays', '45');

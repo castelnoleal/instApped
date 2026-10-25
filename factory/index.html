@@ -215,12 +215,16 @@ body.ed-lite .buyonly,body.ed-play .pm,body:not(.ed-billing) .gp,body:not(.ed-ma
 .bfoot{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:10px;position:sticky;bottom:0;background:var(--s);padding:8px 0}.bfoot p{font-size:13.5px;color:var(--m)}
 .okey{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;word-break:break-all}
 .prochip{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--a);border:1px solid currentColor;border-radius:5px;padding:0 5px;margin-left:6px;vertical-align:2px;white-space:nowrap}
-.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:14px 0}
 .plan{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:10px}
 .plan.hl{border-color:var(--a);box-shadow:0 0 0 3px color-mix(in srgb,var(--a) 18%,transparent)}
 .plan h3{font-size:17px}.plan .ptag{color:var(--m);font-size:13.5px}
 .plan .price{font-size:28px;font-weight:800;letter-spacing:-.02em}.plan .price small{font-size:13px;font-weight:500;color:var(--m)}
 .plan .btn{margin-top:auto}
+.plan.pass .price small{font-weight:600}
+.plan .passfor{overflow-wrap:anywhere}
+.passrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--b);font-size:14px}
+.passrow b{overflow-wrap:anywhere}
 .feat{list-style:none;padding:0;display:grid;gap:6px;font-size:14px}
 .feat li{display:flex;gap:8px}.feat li::before{content:"✓";color:var(--ok);font-weight:700}
 .billseg{max-width:360px}
@@ -504,7 +508,8 @@ CastelApp.checkForUpdate()          // check the update feed / Google Play now</
   <div class="card"><h3>Recent builds</h3><p class="h">The latest app builds on GitHub Actions, with the reason when one fails.</p><div id="oBuilds"><p class="h">Loading…</p></div></div>
   <div class="card"><h3>Complimentary license</h3><p class="h">Give a client, partner or tester a license key. It works on the public factory and in the Play apps.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-      <label class="f" style="margin:0">Plan<select class="inp" id="oPlan" style="margin:0"><option value="pro">Pro</option><option value="business">Business</option></select></label>
+      <label class="f" style="margin:0">Plan<select class="inp" id="oPlan" style="margin:0"><option value="pro">Pro</option><option value="business">Business</option><option value="app">App Pass</option></select></label>
+      <label class="f" style="margin:0" id="oPkgBox" hidden>Package ID<input class="inp" id="oPkg" placeholder="com.client.app" style="margin:0" autocapitalize="none" spellcheck="false"></label>
       <label class="f" style="margin:0;max-width:120px">Days<input class="inp" id="oDays" type="number" min="1" max="3660" value="30" style="margin:0"></label>
       <label class="f" style="margin:0;flex:1;min-width:180px">Note (who it's for)<input class="inp" id="oNote" maxlength="200" style="margin:0" placeholder="Client name"></label>
       <button class="btn pri" id="oIssue">Issue key</button></div>
@@ -558,6 +563,7 @@ CastelApp.checkForUpdate()          // check the update feed / Google Play now</
   <div class="card" id="licCard"><h3>Plan and license</h3><p class="h" id="licStatus">You're on the Free plan.</p>
     <label class="f">License key<input class="inp" id="licKey" placeholder="IAL1.…" spellcheck="false" autocapitalize="none" autocomplete="off"></label>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm pri" id="licSave">Activate</button><button class="btn sm" id="licCopy">Copy key</button><button class="btn sm dng" id="licRemove">Remove from this device</button></div>
+    <div id="passList" hidden></div>
     <div class="nomaster"><label class="f" style="margin-top:14px">Owner access token<input type="password" id="token" autocomplete="off" placeholder="Only for the factory owner"></label>
     <p style="font-size:13px;color:var(--m);margin-top:-6px">Kept for this browser tab only. Unlocks every feature and test builds.</p></div>
     <p class="mo" style="font-size:13.5px;margin-top:12px">Signed in as the owner on the master edition. <a href="/master/logout" id="moOut">Sign out</a></p>
@@ -608,7 +614,7 @@ CastelApp.checkForUpdate()          // check the update feed / Google Play now</
     <div style="display:flex;gap:8px;flex-wrap:wrap"><input class="inp" id="recRef" style="max-width:320px;margin:0" placeholder="IA-… or cs_…" autocapitalize="characters" spellcheck="false"><button class="btn" id="recBtn">Recover license</button></div>
   </div>
   <p class="legal gp">Subscriptions are sold through Google Play, renew automatically and can be cancelled any time in the Play Store. By subscribing you agree to the <a href="https://instapped.com/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="https://instapped.com/privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p>
-  <p class="legal pm">Prices are in Philippine pesos. Payments are processed securely by PayMongo (cards, GCash, Maya). Plans run for the period you buy and don't renew automatically; buy again before it ends to extend. By purchasing you agree to the <a href="https://instapped.com/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="https://instapped.com/privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>. Questions? <a href="https://instapped.com/contact.html" target="_blank" rel="noopener">Contact us</a>.</p>
+  <p class="legal pm">Prices are in Philippine pesos. Payments are processed securely by PayMongo (cards, GCash, Maya). Pro and Business run for the period you buy and don't renew automatically; buy again before it ends to extend. An App Pass is a single payment for one app's package ID. By purchasing you agree to the <a href="https://instapped.com/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="https://instapped.com/privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>. Questions? <a href="https://instapped.com/contact.html" target="_blank" rel="noopener">Contact us</a>.</p>
 </dialog>
 <dialog class="dlg" id="delDlg" aria-labelledby="delTitle">
   <h3 id="delTitle">Delete?</h3>
@@ -723,7 +729,8 @@ const HEX=/^#[0-9a-f]{6}$/i;
 const splashKey=id=>id+":splash";
 let splashURL="";
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2600)}
-function persist(){S.updated=Date.now();const i=P.findIndex(p=>p.id===S.id);if(!S.name&&!S.html&&!S.url&&!S.icon&&!S.fileName)return;i<0?P.unshift(S):P[i]=S;save(KEY.p,P);try{localStorage.setItem(KEY.cur,S.id)}catch{}}
+let lastPlanPkg=null;
+function persist(){if(typeof applyPlanUI==="function"&&S.pkg!==lastPlanPkg&&lastPlanPkg!==null){lastPlanPkg=S.pkg;try{applyPlanUI()}catch{}}lastPlanPkg=S.pkg;S.updated=Date.now();const i=P.findIndex(p=>p.id===S.id);if(!S.name&&!S.html&&!S.url&&!S.icon&&!S.fileName)return;i<0?P.unshift(S):P[i]=S;save(KEY.p,P);try{localStorage.setItem(KEY.cur,S.id)}catch{}}
 
 const JAVA_KW=new Set("abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public return short static strictfp super switch synchronized this throw throws transient try void volatile while true false null".split(" "));
 function suggestPkg(name){
@@ -1181,7 +1188,7 @@ $("#buildBtn").onclick=async()=>{
       backNavigation:Boolean(S.back),zoom:Boolean(S.zoom),fullscreen:Boolean(S.full),externalLinks:Boolean(S.ext),
       offlineStorage:Boolean(S.offline),autoUpdate:Boolean(S.update),
       cacheMode:({off:"off",std:"standard",first:"offline",aggr:"aggressive"})[S.cache]||"standard",
-      signing:Boolean(S.sign),signingAccessToken:ownerToken(),licenseKey:LIC.key&&LIC.exp>Date.now()?LIC.key:"",projectId:S.id,previousBuildId:S.buildId||"",testBuild:false,
+      signing:Boolean(S.sign),signingAccessToken:ownerToken(),licenseKey:buildLicenseKey(),projectId:S.id,previousBuildId:S.buildId||"",testBuild:false,
       themeColor:HEX.test(S.theme)?S.theme:"#080B14",splashBackground:HEX.test(S.sbg)?S.sbg:"#080B14",
       splashMode:S.splash==="art"&&S.splashName?"art":"icon",splashFit:S.sfit==="contain"?"contain":"cover",splashMinMs:Number(S.smin)||0,
       splashFileName:"",splashBase64:"",
@@ -1274,7 +1281,7 @@ async function downloadBuildArtifact(buildId,kind,button,name){
   }
 }
 async function openProject(p){
-  S=Object.assign(blank(),structuredClone(p));srcFile=null;pkgTouched=true;A=emptyA();pvKey="";resetBuildUI();
+  S=Object.assign(blank(),structuredClone(p));srcFile=null;pkgTouched=true;A=emptyA();pvKey="";resetBuildUI();lastPlanPkg=S.pkg;try{applyPlanUI()}catch{}
   bind();await loadSplash();
   try{localStorage.setItem(KEY.cur,S.id)}catch{}
   if(storedInDb(S)){try{await sourceBlob()}catch{}if(!srcFile)toast("Saved source could not be loaded. Re-import the project backup or upload it again.")}
@@ -1289,7 +1296,7 @@ $("#plist").onclick=async e=>{
   if(a==="dup"){const c=structuredClone(p),oldId=c.id;c.id="p"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);c.name=(c.name||"Untitled")+" copy";c.status="draft";c.updated=Date.now();["buildId","pendingBuildId","apkUrl","aabUrl","lastBuiltCode"].forEach(k=>delete c[k]);try{const blob=await getZip(oldId);if(blob)await putZip(c.id,blob);const sb=await getZip(splashKey(oldId));if(sb)await putZip(splashKey(c.id),sb)}catch(e){toast("Project copied, but some of its files could not be copied.")}P.unshift(c);save(KEY.p,P);renderProjects();toast("Duplicated. Give it its own package ID before publishing.")}
   if(a==="del"&&confirm("Delete "+(p.name||"this project")+"?")){P=P.filter(x=>x.id!==id);save(KEY.p,P);try{await delZip(id);await delZip(splashKey(id))}catch{}if(S.id===id){S=blank();srcFile=null;pkgTouched=false;A=emptyA();bind();try{localStorage.removeItem(KEY.cur)}catch{}}renderProjects();toast("Project deleted")}
 };
-$("#newProj").onclick=()=>{S=blank();if(splashURL){URL.revokeObjectURL(splashURL);splashURL=""}srcFile=null;pkgTouched=false;A=emptyA();pvKey="";resetBuildUI();try{localStorage.removeItem(KEY.cur)}catch{}bind();go(0);view("create");preview(true)};
+$("#newProj").onclick=()=>{S=blank();lastPlanPkg=S.pkg;try{applyPlanUI()}catch{}if(splashURL){URL.revokeObjectURL(splashURL);splashURL=""}srcFile=null;pkgTouched=false;A=emptyA();pvKey="";resetBuildUI();try{localStorage.removeItem(KEY.cur)}catch{}bind();go(0);view("create");preview(true)};
 $("#exp").onclick=async()=>{try{const backup=[];for(const p of P){const copy=structuredClone(p);if(storedInDb(copy)){copy.zipBase64=await zipBase64(copy.id);if(!copy.zipBase64)copy.zipMissing=true}if(copy.splashName){const sb=await getZip(splashKey(copy.id)).catch(()=>null);if(sb)copy.splashBase64=await b64(sb)}backup.push(copy)}const a=document.createElement("a"),url=URL.createObjectURL(new Blob([JSON.stringify(backup)],{type:"application/json"}));a.href=url;a.download="instapped-projects.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);toast("Project backup exported")}catch(e){toast("Export failed: source storage could not be read.")}};
 $("#imp").onchange=async e=>{try{const file=e.target.files[0];if(!file)return;const d=JSON.parse(await file.text());if(!Array.isArray(d))throw 0;const incoming=[];for(const raw of d){if(!raw||!raw.id)continue;const p=structuredClone(raw),zip=p.zipBase64,spl=p.splashBase64;delete p.zipBase64;delete p.zipMissing;delete p.splashBase64;if(P.some(old=>old.id===p.id))p.id="p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);if(zip&&storedInDb(p))await putZip(p.id,base64Blob(zip,isZipName(p.fileName)?"application/zip":"text/html"));if(spl&&p.splashName)await putZip(splashKey(p.id),base64Blob(spl,/\.png$/i.test(p.splashName)?"image/png":"image/jpeg"));else if(p.splashName&&!spl){p.splashName="";p.splash="icon"}incoming.push(p)}P=[...incoming,...P];save(KEY.p,P);renderProjects();toast("Imported "+incoming.length+" projects")}catch{toast("Import failed. Choose a valid instApped project backup.")}finally{e.target.value=""}};
 $("#copyDev").onclick=async()=>{try{await navigator.clipboard.writeText($("#devCode").textContent);toast("Copied")}catch{toast("Clipboard access is unavailable in this browser.")}};
@@ -1405,12 +1412,26 @@ const TIER_ORDER=["free","pro","business"];
 const LIC_KEY="instapped.license",PENDING_KEY="instapped.pending";
 const FALLBACK_PLANS={currency:"PHP",paymentsEnabled:false,plans:[
   {id:"free",name:"Free",tagline:"Build and test Android apps from any web project.",features:["HTML, ZIP and website apps","Test APK builds","Offline storage, links, permissions and more","Small \"Made with instApped\" note on the splash screen"],prices:{monthly:0,annual:0}},
+  {id:"app",name:"App Pass",oneTime:true,tagline:"Pay once to publish one app. No subscription.",features:["Pro features for one app, for good","Signed, Play-ready AAB releases","Unlimited updates and rebuilds","Splash art, app colour and no instApped badge"],prices:{once:149000}},
   {id:"pro",name:"Pro",tagline:"Everything you need to publish on Google Play.",features:["Signed, Play-ready AAB releases","Splash art, app colour and no instApped badge","Update alerts, update feed and page notifications","No ads in the factory"],prices:{monthly:49900,annual:499000}},
   {id:"business",name:"Business",tagline:"Publish apps for clients and your company.",features:["Everything in Pro","Publishing kit: store listing assets and text","Privacy policy generator and Data safety answers","Google Play submission checklist"],prices:{monthly:169000,annual:1690000}}]};
 let LIC=Object.assign({key:"",plan:"free",exp:0,owner:false,checked:0},load(LIC_KEY,{}));
+// App Passes: one-time purchases, each unlocking Pro features for one package ID.
+const PASS_KEY="instapped.passes";
+let PASSES=(load(PASS_KEY,[])||[]).filter(x=>x&&x.key&&x.pkg);
+const savePasses=()=>save(PASS_KEY,PASSES);
+const passFor=pkg=>pkg?PASSES.find(x=>x.pkg===pkg)||null:null;
+function addPass(d){PASSES=PASSES.filter(x=>x.pkg!==d.pkg);PASSES.unshift({key:d.key,pkg:d.pkg,ref:d.reference||d.ref||""});savePasses()}
+// A license pasted from before App Passes existed might hold an App Pass; move it.
+if(LIC.plan==="app"&&LIC.key&&LIC.pkg){addPass({key:LIC.key,pkg:LIC.pkg});LIC={key:"",plan:"free",exp:0,owner:false,checked:0}}
 let PLANS=FALLBACK_PLANS,billing="monthly";
 const rankOf=t=>Math.max(0,TIER_ORDER.indexOf(t));
-const planNow=()=>LIC.owner?"business":(LIC.key&&LIC.exp>Date.now()?LIC.plan:"free");
+const basePlan=()=>LIC.owner?"business":(LIC.key&&LIC.exp>Date.now()&&LIC.plan!=="app"?LIC.plan:"free");
+/** The plan for the open project: a subscription, or Pro through an App Pass for this app's package ID. */
+const passActive=()=>basePlan()==="free"&&typeof S!=="undefined"&&S&&!!passFor(S.pkg);
+const planNow=()=>passActive()?"pro":basePlan();
+/** The key to send with a build: the subscription, or the App Pass for this app. */
+const buildLicenseKey=()=>basePlan()!=="free"&&!LIC.owner?LIC.key:(passFor(S.pkg)||{}).key||"";
 const hasPlan=min=>rankOf(planNow())>=rankOf(min);
 const peso=c=>"₱"+(c/100).toLocaleString("en-PH",{maximumFractionDigits:0});
 const DEF_COLOR="#080B14";
@@ -1424,15 +1445,18 @@ function applyPlanUI(){
   const p=planNow();
   document.body.classList.toggle("paid",rankOf(p)>=1);
   document.body.classList.toggle("biz",rankOf(p)>=2);
-  const chip=$("#planChip");chip.textContent=EDITION==="master"?"Master":LIC.owner?"Owner":({free:"Free",pro:"Pro",business:"Business"})[p];chip.className="planchip "+(EDITION==="master"?"master":p);
+  const chip=$("#planChip");chip.textContent=EDITION==="master"?"Master":LIC.owner?"Owner":passActive()?"App Pass":({free:"Free",pro:"Pro",business:"Business"})[p];chip.className="planchip "+(EDITION==="master"?"master":p);
   const exp=LIC.exp&&!LIC.owner?new Date(LIC.exp).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}):"";
   $("#licStatus").textContent=EDITION==="master"?"Master edition: you're signed in as the owner, so every feature is unlocked.":LIC.owner?"Owner access: every feature is unlocked for this tab."
     :p==="free"?(LIC.key&&LIC.exp&&LIC.exp<=Date.now()?"Your license expired on "+exp+"."+(EDITION==="play-lite"?"":" Renew it on the Plans page."):EDITION==="play-lite"?"You're on the Free plan. Have a license key? Enter it below.":"You're on the Free plan.")
+    :passActive()?"App Pass: Pro features are unlocked for "+S.pkg+" for good."
     :"instApped "+({pro:"Pro",business:"Business"})[p]+" · active until "+exp+".";
+  renderPasses();
   if(document.activeElement!==$("#licKey"))$("#licKey").value=LIC.key||"";
   $("#adCard").hidden=!LIC.owner;
   $("#plansOpen").textContent=rankOf(p)>=1?"Change plan":"View plans";
-  $("#plansEntryNote").textContent=p==="free"?"You're on Free. Pro adds signed Google Play releases, splash art and update alerts; Business adds the publishing kit."
+  $("#plansEntryNote").textContent=passActive()?"This app has an App Pass. Pro or Business unlock every app, and Business adds the publishing kit."
+    :p==="free"?"You're on Free. Pay once with an App Pass to publish one app, or choose Pro for every app. Business adds the publishing kit."
     :p==="pro"?"You're on Pro. Business adds the publishing kit and Google Play Billing for your apps.":"You're on Business, the top plan.";
   // No factory ads on paid plans.
   // No factory ads on paid plans, the master edition or the Play apps.
@@ -1446,6 +1470,7 @@ async function verifyLicenseKey(key,{quiet}={}){
     const d=await r.json();
     if(d.owner){LIC.owner=true}
     else if(EDITION==="master"){location.assign("/master");return false}
+    else if(d.valid&&d.plan==="app"&&d.pkg){addPass({key,pkg:d.pkg});if(key===LIC.key)LIC={key:"",plan:"free",exp:0,owner:LIC.owner,checked:0};LIC.checked=Date.now();saveLic();applyPlanUI();if(!quiet)toast("App Pass added for "+d.pkg);return "app"}
     else if(d.valid){LIC.key=key;LIC.plan=d.plan;LIC.exp=d.exp}
     else{if(!quiet)toast(d.reason||"That license key isn't valid.");if(d.expired){LIC.key=key;LIC.plan=d.plan;LIC.exp=d.exp}else if(key===LIC.key){LIC.exp=0}}
     LIC.checked=Date.now();saveLic();applyPlanUI();return !!(d.valid||d.owner);
@@ -1455,7 +1480,17 @@ async function verifyLicenseKey(key,{quiet}={}){
 const plansView=()=>view(EDITION==="play-lite"?"settings":EDITION==="master"?"owner":"plans");
 $("#planChip").onclick=plansView;
 document.addEventListener("click",e=>{const b=e.target.closest("[data-plans]");if(!b)return;e.preventDefault();openPlans(b.dataset.plans||"",b.dataset.feature||"")});
-$("#licSave").onclick=async()=>{const k=$("#licKey").value.trim();if(!k)return toast("Paste your license key first.");if(await verifyLicenseKey(k))toast("License activated: instApped "+({pro:"Pro",business:"Business"})[LIC.plan])};
+$("#licSave").onclick=async()=>{const k=$("#licKey").value.trim();if(!k)return toast("Paste your license key first.");const ok=await verifyLicenseKey(k);if(ok==="app"){$("#licKey").value=LIC.key||"";return}if(ok)toast("License activated: instApped "+({pro:"Pro",business:"Business"})[LIC.plan])};
+function renderPasses(){
+  const box=$("#passList");if(!box)return;
+  box.hidden=!PASSES.length;
+  box.innerHTML=PASSES.length?`<p class="h" style="margin:12px 0 6px">App Passes on this device</p>`+PASSES.map((x,i)=>`<div class="passrow"><span><b>${esc(x.pkg)}</b>${S&&S.pkg===x.pkg?' <i class="prochip" style="display:inline">This app</i>':""}</span><span style="display:flex;gap:6px"><button class="btn sm" data-pcopy="${i}">Copy key</button><button class="btn sm dng" data-pdel="${i}">Remove</button></span></div>`).join(""):"";
+}
+$("#passList").addEventListener("click",async e=>{
+  const c=e.target.closest("[data-pcopy]"),d=e.target.closest("[data-pdel]");
+  if(c){const x=PASSES[+c.dataset.pcopy];try{await navigator.clipboard.writeText(x.key);toast("App Pass key copied")}catch{toast("Copy failed.")}}
+  if(d){const x=PASSES[+d.dataset.pdel];if(!confirm("Remove the App Pass for "+x.pkg+" from this device? Copy its key first so you can add it again."))return;PASSES.splice(+d.dataset.pdel,1);savePasses();applyPlanUI();toast("App Pass removed from this device")}
+});
 $("#licCopy").onclick=async()=>{if(!LIC.key)return toast("No license key on this device.");try{await navigator.clipboard.writeText(LIC.key);toast("License key copied")}catch{toast("Copy failed. Select the key and copy it.")}};
 $("#licRemove").onclick=()=>{if(LIC.key&&!confirm("Remove the license from this device? You can paste it again later."))return;LIC={key:"",plan:"free",exp:0,owner:LIC.owner,checked:0};saveLic();applyPlanUI();toast("License removed from this device")};
 $("#token").addEventListener("change",async e=>{const t=e.target.value.trim();try{t?sessionStorage.setItem("instapped.owner",t):sessionStorage.removeItem("instapped.owner")}catch{}LIC.owner=false;if(t){if(!(await verifyLicenseKey(LIC.key,{quiet:true}))&&!LIC.owner)toast("That owner token isn't valid.")}applyPlanUI()});
@@ -1467,7 +1502,7 @@ function openPlans(min="",feature=""){
   if(EDITION==="play-lite"){view("settings");return setTimeout(()=>$("#licKey").focus(),50)}
   const plan=min&&(PLANS.plans.find(p=>p.id===min)||FALLBACK_PLANS.plans.find(p=>p.id===min));
   const why=$("#plansWhy");
-  if(feature&&plan){why.textContent=feature+" is part of instApped "+plan.name+(rankOf(min)>=2?"":" and Business")+". Choose a plan to unlock it.";why.hidden=false}else why.hidden=true;
+  if(feature&&plan){why.textContent=feature+" is part of instApped "+plan.name+(rankOf(min)>=2?"":" and Business"+(EDITION==="web"?", or pay once with an App Pass for this app":""))+". Choose a plan to unlock it.";why.hidden=false}else why.hidden=true;
   PLAN_NEED=feature&&min?min:"";
   $("#upDlg").open&&$("#upDlg").close();
   renderPlans();
@@ -1482,7 +1517,7 @@ $("#plansDlg").addEventListener("click",e=>{if(e.target===e.currentTarget)closeP
 $("#plansDlg").addEventListener("close",()=>{PLAN_NEED="";$("#plansWhy").hidden=true});
 function upgrade(feature,min="pro"){
   if(EDITION!=="play-lite")return openPlans(min,feature);
-  const plan=PLANS.plans.find(p=>p.id===min)||FALLBACK_PLANS.plans[1];
+  const plan=PLANS.plans.find(p=>p.id===min)||FALLBACK_PLANS.plans.find(p=>p.id==="pro");
   $("#upTitle").textContent=feature+" is part of instApped "+plan.name;
   const gp=EDITION==="play-billing"&&gbOffer(min,"monthly");
   $("#upBody").textContent=EDITION==="play-lite"?plan.tagline+" Enter an instApped "+plan.name+" license key in Settings to unlock it."
@@ -1520,12 +1555,26 @@ async function loadPlans(){
   try{const r=await fetch(endpoint()+"/plans",{cache:"no-store"});const d=await r.json();if(d&&Array.isArray(d.plans))PLANS=d}catch{}
   renderPlans();
 }
+const PKG_RE=/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
+/** The App Pass card: a one-time price for the open project's package ID. */
+function passCard(p){
+  const pkg=String(S&&S.pkg||"").trim(),has=passFor(pkg),sub=rankOf(basePlan())>=1;
+  const btn=has?`<button class="btn" disabled>This app has a pass</button>`
+    :sub?`<button class="btn" disabled>Included in your plan</button>`
+    :!PKG_RE.test(pkg)?`<button class="btn" data-goto-pkg>Set this app's package ID</button>`
+    :`<button class="btn pri" data-buy="app" ${PLANS.paymentsEnabled?"":"disabled"}>${PLANS.paymentsEnabled?"Get App Pass":"Coming soon"}</button>`;
+  return `<div class="plan pass${p.id===PLAN_NEED?" need":""}" data-plan="app"><h3>${esc(p.name)}${has?' <i class="prochip" style="display:inline">This app</i>':""}</h3><p class="ptag">${esc(p.tagline)}</p>
+    <div class="price">${peso(p.prices.once||0)}<small> one-time</small></div>
+    <p class="ptag passfor">${PKG_RE.test(pkg)?"For <b>"+esc(pkg)+"</b>":"For the app you're building"}</p>
+    <ul class="feat">${p.features.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>${btn}</div>`;
+}
 function renderPlans(){
   if(EDITION==="play-billing")return renderPlayPlans();
   const box=$("#planCards");if(!box)return;const cur=planNow();
   box.innerHTML=PLANS.plans.map(p=>{
+    if(p.oneTime)return passCard(p);
     const price=p.prices[billing]||0,per=billing==="annual"?"/year":"/month";
-    const isCur=p.id===cur,lower=rankOf(p.id)<rankOf(cur);
+    const isCur=p.id===cur&&!(passActive()&&p.id==="pro"),lower=rankOf(p.id)<rankOf(basePlan());
     const btn=p.id==="free"?`<button class="btn" disabled>${isCur?"Current plan":"Included"}</button>`
       :isCur?`<button class="btn pri" data-buy="${p.id}">Extend ${esc(p.name)}</button>`
       :lower?`<button class="btn" disabled>Included in your plan</button>`
@@ -1538,18 +1587,20 @@ function renderPlans(){
 }
 $$("#billSeg button").forEach(b=>b.onclick=()=>{billing=b.dataset.v;$$("#billSeg button").forEach(x=>x.classList.toggle("on",x===b));renderPlans()});
 $("#planCards").addEventListener("click",async e=>{
+  if(e.target.closest("[data-goto-pkg]")){closePlans();view("create");try{go(1)}catch{}setTimeout(()=>{const f=$('[data-k=pkg]');if(f)f.focus()},80);return toast("Add a package ID like com.yourname.app, then get your App Pass.")}
   const b=e.target.closest("[data-buy]");if(!b)return;
   b.disabled=true;const label=b.textContent;b.textContent="Opening checkout…";
   try{
-    const r=await fetch(endpoint()+"/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({plan:b.dataset.buy,period:billing,email:$("#buyEmail").value.trim()})});
+    const isPass=b.dataset.buy==="app";
+    const r=await fetch(endpoint()+"/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({plan:b.dataset.buy,period:isPass?"once":billing,email:$("#buyEmail").value.trim(),...(isPass?{packageName:S.pkg}:{})})});
     const d=await r.json();if(!r.ok||!d.ok||!d.checkoutUrl)throw new Error(d.error||"Checkout isn't available right now.");
-    save(PENDING_KEY,{sessionId:d.sessionId,reference:d.reference,plan:b.dataset.buy,period:billing,at:Date.now()});
+    save(PENDING_KEY,{sessionId:d.sessionId,reference:d.reference,plan:b.dataset.buy,period:isPass?"once":billing,...(isPass?{pkg:S.pkg}:{}),at:Date.now()});
     location.assign(d.checkoutUrl);
   }catch(err){toast(err.message);b.disabled=false;b.textContent=label}
 });
 async function claimLicense(body,url="/license/claim"){
   for(let i=0;i<10;i++){
-    const r=await fetch(endpoint()+url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...body,currentKey:LIC.key})});
+    const r=await fetch(endpoint()+url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...body,currentKey:basePlan()!=="free"?LIC.key:""})});
     const d=await r.json().catch(()=>({}));
     if(d.ok&&d.key)return d;
     if(!d.pending)throw new Error(d.error||"We couldn't confirm the payment.");
@@ -1559,6 +1610,14 @@ async function claimLicense(body,url="/license/claim"){
 }
 function celebrate(d){
   closePlans();
+  if(d.plan==="app"){
+    addPass(d);try{localStorage.removeItem(PENDING_KEY)}catch{}applyPlanUI();
+    $("#okTitle").textContent="Your App Pass is active";
+    $("#okBody").textContent="Thank you! Pro features are unlocked for "+d.pkg+" for good, including signed Google Play releases and every future update.";
+    $("#okKey").value=d.key;$("#okRef").textContent=d.reference?"Receipt reference: "+d.reference:"";
+    try{$("#okDlg").showModal()}catch{}
+    return;
+  }
   LIC.key=d.key;LIC.plan=d.plan;LIC.exp=d.exp;LIC.checked=Date.now();saveLic();
   try{localStorage.removeItem(PENDING_KEY)}catch{}
   applyPlanUI();
@@ -1615,7 +1674,7 @@ async function gbLoad(){
 const isoPeriod=p=>({P1W:"1 week",P3D:"3 days",P7D:"7 days",P14D:"14 days",P1M:"1 month",P3M:"3 months",P1Y:"1 year"})[p]||p;
 function renderPlayPlans(){
   const box=$("#planCards");if(!box)return;const cur=planNow();
-  box.innerHTML=PLANS.plans.map(p=>{
+  box.innerHTML=PLANS.plans.filter(p=>!p.oneTime).map(p=>{
     const off=p.id==="free"?null:gbOffer(p.id,billing),per=billing==="annual"?"/year":"/month";
     const isCur=p.id===cur,lower=rankOf(p.id)<rankOf(cur);
     const btn=p.id==="free"?`<button class="btn" disabled>${isCur?"Current plan":"Included"}</button>`
@@ -1699,14 +1758,15 @@ const fmtDate=t=>new Date(t).toLocaleDateString(undefined,{year:"numeric",month:
 $("#oRefresh").onclick=ownerStatus;
 $("#oIssue").onclick=async()=>{
   const b=$("#oIssue");b.disabled=true;
-  try{const d=await ownerApi("/admin/license",{plan:$("#oPlan").value,days:Number($("#oDays").value),note:$("#oNote").value.trim()});
-    $("#oOut").hidden=false;$("#oKey").textContent=d.key;$("#oMeta").textContent="instApped "+d.name+" until "+fmtDate(d.exp)+" · reference "+d.ref;toast("License issued");
+  try{const d=await ownerApi("/admin/license",{plan:$("#oPlan").value,days:Number($("#oDays").value),pkg:$("#oPkg").value.trim(),note:$("#oNote").value.trim()});
+    $("#oOut").hidden=false;$("#oKey").textContent=d.key;$("#oMeta").textContent=d.plan==="app"?"instApped App Pass for "+d.pkg+", permanent · reference "+d.ref:"instApped "+d.name+" until "+fmtDate(d.exp)+" · reference "+d.ref;toast("License issued");
   }catch(e){toast(e.message)}finally{b.disabled=false}
 };
+$("#oPlan").onchange=()=>{const pass=$("#oPlan").value==="app";$("#oPkgBox").hidden=!pass;$("#oDays").closest("label").hidden=pass};
 $("#oCopy").onclick=async()=>{try{await navigator.clipboard.writeText($("#oKey").textContent);toast("License key copied")}catch{toast("Copy failed. Select the key and copy it.")}};
 const refOf=v=>{const k=decodeKey(v);return k?k.ref:String(v).trim()};
 $("#oLook").onclick=()=>{const k=decodeKey($("#oRef").value);
-  $("#oInfo").textContent=k?`${({pro:"Pro",business:"Business"})[k.plan]||k.plan} · ${k.exp>Date.now()?"valid until":"expired on"} ${fmtDate(k.exp)} · reference ${k.ref||"(none)"}`:"That isn't an instApped license key. To revoke by reference, press Revoke.";};
+  $("#oInfo").textContent=k?`${({pro:"Pro",business:"Business",app:"App Pass for "+(k.pkg||"?")})[k.plan]||k.plan} · ${k.exp>Date.now()?"valid until":"expired on"} ${fmtDate(k.exp)} · reference ${k.ref||"(none)"}`:"That isn't an instApped license key. To revoke by reference, press Revoke.";};
 $("#oRevoke").onclick=async()=>{const ref=refOf($("#oRef").value);if(!ref)return toast("Paste a license key or reference first.");
   if(!confirm("Revoke "+ref+"? Keys with this reference stop unlocking builds."))return;
   try{await ownerApi("/admin/revoke",{ref});$("#oInfo").textContent="Revoked "+ref+".";toast("License revoked")}catch(e){toast(e.message)}};
@@ -1880,7 +1940,7 @@ $("#lLoad").onclick=withBusy($("#lLoad"),"Loading…",async()=>{
   const rows=[...d.sales,...d.play,...d.complimentary];
   const src={website:"Website",["google-play"]:"Google Play",complimentary:"Complimentary"};
   const active=rows.filter(r=>!r.revoked&&r.exp>Date.now()).length;
-  $("#lList").innerHTML=`<p class="h" style="margin-top:10px">${active} active · ${rows.length} on record · ${d.revoked.length} revoked</p>`+(rows.length?`<table class="ltab"><tr><th>Plan</th><th>Source</th><th>Until</th><th>Reference</th><th></th></tr>${rows.map(r=>`<tr class="${r.revoked?"rv":""}"><td>${esc(({pro:"Pro",business:"Business"})[r.plan]||r.plan)}</td><td>${esc(src[r.source])}${r.note?"<br><small>"+esc(r.note)+"</small>":""}</td><td>${r.exp?fmtDate(r.exp):"—"}${r.revoked?"<br>revoked":r.exp&&r.exp<Date.now()?"<br>expired":""}</td><td>${esc(r.ref)}</td><td>${r.revoked||!r.ref?"":`<button class="btn sm dng" data-lrev="${esc(r.ref)}">Revoke</button>`}</td></tr>`).join("")}</table>`:'<p class="h">No licenses yet.</p>');
+  $("#lList").innerHTML=`<p class="h" style="margin-top:10px">${active} active · ${rows.length} on record · ${d.revoked.length} revoked</p>`+(rows.length?`<table class="ltab"><tr><th>Plan</th><th>Source</th><th>Until</th><th>Reference</th><th></th></tr>${rows.map(r=>`<tr class="${r.revoked?"rv":""}"><td>${esc(({pro:"Pro",business:"Business",app:"App Pass"+(r.pkg?" · "+r.pkg:"")})[r.plan]||r.plan)}</td><td>${esc(src[r.source])}${r.note?"<br><small>"+esc(r.note)+"</small>":""}</td><td>${r.exp?fmtDate(r.exp):"—"}${r.revoked?"<br>revoked":r.exp&&r.exp<Date.now()?"<br>expired":""}</td><td>${esc(r.ref)}</td><td>${r.revoked||!r.ref?"":`<button class="btn sm dng" data-lrev="${esc(r.ref)}">Revoke</button>`}</td></tr>`).join("")}</table>`:'<p class="h">No licenses yet.</p>');
 });
 $("#lList").addEventListener("click",async e=>{
   const b=e.target.closest("[data-lrev]");if(!b)return;

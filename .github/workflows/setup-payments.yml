@@ -1,0 +1,162 @@
+name: Set up payments
+# Connects PayMongo to the build service in one run:
+#   1. creates LICENSE_SECRET once (it must never change, or issued keys stop working)
+#   2. stores the PayMongo secret key from the PAYMONGO_SECRET_KEY repository secret
+#   3. creates (or reuses) the PayMongo webhook for paid checkouts and stores its signing secret
+#   4. creates the LICENSES storage for key recovery, revocation and the free daily limit
+#   5. redeploys the build service and checks that payments are switched on
+# Run it again after switching PAYMONGO_SECRET_KEY from sk_test_ to sk_live_.
+# Nothing secret is printed: values are masked and only "set"/"created" is logged.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: setup-payments
+  cancel-in-progress: false
+
+env:
+  WORKER: castel-app-factory-api
+  HOOK_URL: https://api.instapped.com/webhooks/paymongo
+  KV_TITLE: instapped-licenses
+  WRANGLER: wrangler@3.90.0
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CF_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.CF_ACCOUNT_ID }}
+      PAYMONGO_SECRET_KEY: ${{ secrets.PAYMONGO_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the keys you added
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "::error::Cloudflare credentials are missing. Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID as repository secrets."
+            exit 1
+          fi
+          if [ -z "${PAYMONGO_SECRET_KEY}" ]; then
+            echo "::error::Add your PayMongo secret key as a repository secret named PAYMONGO_SECRET_KEY (Settings > Secrets and variables > Actions), then run this again."
+            exit 1
+          fi
+          case "${PAYMONGO_SECRET_KEY}" in
+            sk_test_*) echo "MODE=test" >> "$GITHUB_ENV"; echo "PayMongo key: test mode" ;;
+            sk_live_*) echo "MODE=live" >> "$GITHUB_ENV"; echo "PayMongo key: live mode" ;;
+            *) echo "::error::PAYMONGO_SECRET_KEY must be the secret key that starts with sk_test_ or sk_live_ (not the public pk_ key)."; exit 1 ;;
+          esac
+          code=$(curl -s -o /dev/null -w '%{http_code}' -u "${PAYMONGO_SECRET_KEY}:" https://api.paymongo.com/v1/webhooks)
+          if [ "$code" != "200" ]; then
+            echo "::error::PayMongo rejected the secret key (HTTP $code). Copy it again from the PayMongo dashboard (Developers > API keys)."
+            exit 1
+          fi
+          npm install --no-save --silent "${WRANGLER}" >/dev/null 2>&1
+          echo "Keys look good."
+
+      - name: License signing secret (created once, never replaced)
+        run: |
+          set -euo pipefail
+          # If listing fails, stop: guessing "not set" would replace the secret and break every issued key.
+          existing=$(npx wrangler secret list --name "$WORKER")
+          if echo "$existing" | grep -q '"LICENSE_SECRET"'; then
+            echo "LICENSE_SECRET already set; keeping it so issued license keys keep working."
+          else
+            value=$(openssl rand -base64 48 | tr -d '\n')
+            echo "::add-mask::$value"
+            printf '%s' "$value" | npx wrangler secret put LICENSE_SECRET --name "$WORKER" >/dev/null
+            echo "LICENSE_SECRET created."
+          fi
+
+      - name: PayMongo secret key
+        run: |
+          set -euo pipefail
+          printf '%s' "$PAYMONGO_SECRET_KEY" | npx wrangler secret put PAYMONGO_SECRET_KEY --name "$WORKER" >/dev/null
+          echo "PAYMONGO_SECRET_KEY set ($MODE mode)."
+
+      - name: PayMongo webhook for paid checkouts
+        run: |
+          set -euo pipefail
+          auth=(-u "${PAYMONGO_SECRET_KEY}:")
+          list=$(curl -sf "${auth[@]}" https://api.paymongo.com/v1/webhooks)
+          hook=$(echo "$list" | jq -c --arg u "$HOOK_URL" '[.data[] | select(.attributes.url == $u)] | first // empty')
+          if [ -n "$hook" ]; then
+            id=$(echo "$hook" | jq -r .id)
+            echo "Reusing the existing $MODE webhook $id."
+            if [ "$(echo "$hook" | jq -r .attributes.status)" != "enabled" ]; then
+              curl -sf -X POST "${auth[@]}" "https://api.paymongo.com/v1/webhooks/$id/enable" >/dev/null
+              echo "Webhook re-enabled."
+            fi
+            if ! echo "$hook" | jq -e '.attributes.events | index("checkout_session.payment.paid")' >/dev/null; then
+              events=$(echo "$hook" | jq -c '.attributes.events + ["checkout_session.payment.paid"]')
+              curl -sf -X PUT "${auth[@]}" -H 'Content-Type: application/json' "https://api.paymongo.com/v1/webhooks/$id" \
+                -d "{\"data\":{\"attributes\":{\"url\":\"$HOOK_URL\",\"events\":$events}}}" >/dev/null
+              echo "Added the checkout_session.payment.paid event."
+            fi
+            secret=$(echo "$hook" | jq -r '.attributes.secret_key // empty')
+            if [ -z "$secret" ]; then
+              secret=$(curl -sf "${auth[@]}" "https://api.paymongo.com/v1/webhooks/$id" | jq -r '.data.attributes.secret_key // empty')
+            fi
+          else
+            created=$(curl -sf -X POST "${auth[@]}" -H 'Content-Type: application/json' https://api.paymongo.com/v1/webhooks \
+              -d "{\"data\":{\"attributes\":{\"url\":\"$HOOK_URL\",\"events\":[\"checkout_session.payment.paid\"]}}}")
+            secret=$(echo "$created" | jq -r '.data.attributes.secret_key // empty')
+            echo "Created a $MODE webhook $(echo "$created" | jq -r .data.id)."
+          fi
+          if [ -z "$secret" ]; then
+            echo "::error::PayMongo didn't return the webhook signing secret. In the PayMongo dashboard, disable the webhook for $HOOK_URL and run this again."
+            exit 1
+          fi
+          echo "::add-mask::$secret"
+          printf '%s' "$secret" | npx wrangler secret put PAYMONGO_WEBHOOK_SECRET --name "$WORKER" >/dev/null
+          echo "PAYMONGO_WEBHOOK_SECRET set."
+
+      - name: License storage (key recovery, revoking keys, free daily limit)
+        run: |
+          set -uo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces"
+          hdr=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          id=$(curl -s "${hdr[@]}" "$api?per_page=100" | jq -r --arg t "$KV_TITLE" '.result[]? | select(.title == $t) | .id' | head -1)
+          if [ -n "$id" ]; then
+            echo "Using the existing $KV_TITLE storage."
+          else
+            out=$(curl -s -X POST "${hdr[@]}" -H 'Content-Type: application/json' "$api" -d "{\"title\":\"$KV_TITLE\"}")
+            id=$(echo "$out" | jq -r '.result.id // empty')
+            if [ -n "$id" ]; then echo "Created the $KV_TITLE storage."
+            else echo "::warning::Couldn't create license storage (the Cloudflare token may lack Workers KV permission). Payments still work; key recovery, revoking and the free daily limit need it."
+            fi
+          fi
+
+  deploy:
+    needs: setup
+    uses: ./.github/workflows/deploy-build-bridge.yml
+    secrets: inherit
+
+  verify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Payments are switched on
+        run: |
+          set -euo pipefail
+          sleep 5
+          plans=$(curl -sf --retry 3 https://api.instapped.com/plans)
+          echo "$plans" | jq -c '{paymentsEnabled, currency, plans: [.plans[] | {id, prices}]}'
+          echo "$plans" | jq -e '.paymentsEnabled == true' >/dev/null || { echo "::error::The build service still reports payments as off."; exit 1; }
+          echo "$plans" | jq -e '[.plans[].id] | index("app")' >/dev/null || { echo "::error::The App Pass plan isn't live."; exit 1; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST https://api.instapped.com/webhooks/paymongo -d '{}')
+          [ "$code" = "401" ] || { echo "::error::The webhook endpoint should reject unsigned calls (got $code)."; exit 1; }
+          {
+            echo "### Payments are on"
+            echo "- Plans: $(echo "$plans" | jq -r '[.plans[].name] | join(", ")')"
+            echo "- PayMongo webhook: $HOOK_URL"
+            echo "- Next: make one test purchase on create.instapped.com, then switch PAYMONGO_SECRET_KEY to your sk_live_ key and run this workflow again."
+          } >> "$GITHUB_STEP_SUMMARY"

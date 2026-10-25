@@ -4,7 +4,7 @@
 // is the factory from the main branch, fetched live (cached briefly), so the
 // master edition always mirrors the public site.
 
-import { safeEqual, issueLicense, PLAN_INFO } from "./billing.js";
+import { safeEqual, issueLicense, PLAN_INFO, validPackage, APP_PASS_EXP } from "./billing.js";
 
 const COOKIE = "ia_owner";
 const SESSION_DAYS = 30;
@@ -155,20 +155,22 @@ export function configStatus(env) {
 }
 
 /** Issue a complimentary license (for clients, partners or testing). */
-export async function adminIssue(env, { plan, days, note }) {
+export async function adminIssue(env, { plan, days, note, pkg }) {
   if (!env.LICENSE_SECRET) throw Object.assign(new Error("Set LICENSE_SECRET first."), { status: 503 });
-  if (!["pro", "business"].includes(plan)) throw Object.assign(new Error("Choose Pro or Business."), { status: 400 });
-  const d = Math.round(Number(days));
-  if (!(d >= 1 && d <= 3660)) throw Object.assign(new Error("Days must be between 1 and 3660."), { status: 400 });
+  if (!["pro", "business", "app"].includes(plan)) throw Object.assign(new Error("Choose Pro, Business or App Pass."), { status: 400 });
+  const appPkg = String(pkg || "").trim();
+  if (plan === "app" && !validPackage(appPkg)) throw Object.assign(new Error("Enter the app's package ID for the App Pass."), { status: 400 });
+  const d = plan === "app" ? 0 : Math.round(Number(days));
+  if (plan !== "app" && !(d >= 1 && d <= 3660)) throw Object.assign(new Error("Days must be between 1 and 3660."), { status: 400 });
   const rand = new Uint8Array(6);
   crypto.getRandomValues(rand);
   const ref = "comp:" + Array.from(rand, (b) => b.toString(16).padStart(2, "0")).join("");
-  const exp = Date.now() + d * 86400000;
-  const key = await issueLicense(env.LICENSE_SECRET, { plan, exp, ref });
+  const exp = plan === "app" ? APP_PASS_EXP : Date.now() + d * 86400000;
+  const key = await issueLicense(env.LICENSE_SECRET, { plan, exp, ref, ...(plan === "app" ? { pkg: appPkg } : {}) });
   if (env.LICENSES) {
-    try { await env.LICENSES.put("issued:" + ref, JSON.stringify({ plan, exp, note: String(note || "").slice(0, 200), at: Date.now() })); } catch {}
+    try { await env.LICENSES.put("issued:" + ref, JSON.stringify({ plan, exp, ...(plan === "app" ? { pkg: appPkg } : {}), note: String(note || "").slice(0, 200), at: Date.now() })); } catch {}
   }
-  return { key, plan, exp, ref, name: PLAN_INFO[plan].name };
+  return { key, plan, exp, ref, name: PLAN_INFO[plan].name, ...(plan === "app" ? { pkg: appPkg } : {}) };
 }
 
 export async function adminRevoke(env, { ref }) {
@@ -200,9 +202,9 @@ export async function listLicenses(env) {
   };
   const revokedRows = await read("revoked:", 200);
   const revokedSet = new Set(revokedRows.map((r) => r.key));
-  const sales = (await read("session:")).map(({ key, value }) => { const p = decodeKeyPayload(value) || {}; return { source: "website", ref: p.ref || key, plan: p.plan || "", exp: p.exp || 0, revoked: revokedSet.has(p.ref || key) }; });
+  const sales = (await read("session:")).map(({ key, value }) => { const p = decodeKeyPayload(value) || {}; return { source: "website", ref: p.ref || key, plan: p.plan || "", pkg: p.pkg || "", exp: p.exp || 0, revoked: revokedSet.has(p.ref || key) }; });
   const play = (await read("play:")).map(({ value }) => { let p = {}; try { p = JSON.parse(value); } catch {} return { source: "google-play", ref: p.ref || "", plan: p.plan || "", exp: (p.expiry || 0) + 86400000, revoked: revokedSet.has(p.ref || "") }; });
-  const complimentary = (await read("issued:")).map(({ key, value }) => { let p = {}; try { p = JSON.parse(value); } catch {} return { source: "complimentary", ref: key, plan: p.plan || "", exp: p.exp || 0, note: p.note || "", issuedAt: p.at || 0, revoked: revokedSet.has(key) }; });
+  const complimentary = (await read("issued:")).map(({ key, value }) => { let p = {}; try { p = JSON.parse(value); } catch {} return { source: "complimentary", ref: key, plan: p.plan || "", pkg: p.pkg || "", exp: p.exp || 0, note: p.note || "", issuedAt: p.at || 0, revoked: revokedSet.has(key) }; });
   const revoked = revokedRows.map(({ key, value }) => ({ ref: key, at: Number(value) || 0 }));
   const byExp = (a, b) => (b.exp || 0) - (a.exp || 0);
   return { available: true, sales: sales.sort(byExp), play: play.sort(byExp), complimentary: complimentary.sort(byExp), revoked };

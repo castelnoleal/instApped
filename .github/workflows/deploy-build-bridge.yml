@@ -8,6 +8,7 @@ on:
       - 'cloudflare-worker/**'
       - '.github/workflows/deploy-build-bridge.yml'
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   deploy:
@@ -26,6 +27,23 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Bind license storage if it exists
+        if: steps.credentials.outputs.configured == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.CF_ACCOUNT_ID }}
+        run: |
+          # The "Set up payments" workflow creates this storage; bind it so license recovery,
+          # revoking and the free daily build limit work. Deploys still work without it.
+          id=$(curl -s -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces?per_page=100" \
+            | jq -r '.result[]? | select(.title == "instapped-licenses") | .id' | head -1)
+          if [ -n "$id" ] && ! grep -q '^binding = "LICENSES"' cloudflare-worker/wrangler.toml; then
+            printf '\n[[kv_namespaces]]\nbinding = "LICENSES"\nid = "%s"\n' "$id" >> cloudflare-worker/wrangler.toml
+            echo "License storage bound."
+          else
+            echo "No license storage to bind yet."
           fi
       - name: Deploy Cloudflare Worker
         if: steps.credentials.outputs.configured == 'true'
@@ -47,7 +65,7 @@ jobs:
           body=$(curl --fail --silent --show-error --retry 3 https://api.instapped.com/health)
           echo "$body"
           echo "$body" | grep -q '"status":"online"'
-          echo "$body" | grep -q '"revision":"instapped-editions-v1"'
+          echo "$body" | grep -q '"revision":"instapped-app-pass-v1"'
           echo "$body" | grep -q '"githubConfigured":true'
           echo "$body" | grep -q '"signingConfigured":true'
           echo "Build bridge deployment verified successfully with GitHub and signing credentials."

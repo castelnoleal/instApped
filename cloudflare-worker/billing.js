@@ -2,13 +2,21 @@
 //
 // License keys are signed tokens (HMAC-SHA256 with LICENSE_SECRET), so the
 // build service can verify them without a database:
-//   IAL1.<base64url(JSON {v,plan,exp,ref})>.<base64url(signature)>
+//   IAL1.<base64url(JSON {v,plan,exp,ref[,pkg]})>.<base64url(signature)>
+// An App Pass ("app" plan) is a one-time purchase that unlocks Pro features
+// for one Android package ID for good; its key carries that package ID.
 // Optional Cloudflare KV binding LICENSES stores issued keys for recovery,
 // revocations, and free-tier daily build counts.
 
 export const CURRENCY = "PHP";
 export const TIERS = ["free", "pro", "business"];
 export const PERIOD_DAYS = { monthly: 31, annual: 366 };
+/** Plans that can be bought. "app" is the one-time App Pass for a single app. */
+export const PAID_PLANS = ["pro", "business", "app"];
+/** App Pass keys don't run out; this far-off date marks them as permanent. */
+export const APP_PASS_EXP = Date.UTC(2100, 0, 1);
+const PKG_RE = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
+export const validPackage = (v) => typeof v === "string" && v.length <= 150 && PKG_RE.test(v);
 const GRACE_DAYS = 3;
 
 // Prices are in centavos (PayMongo's smallest unit). Override with the
@@ -16,6 +24,7 @@ const GRACE_DAYS = 3;
 export const DEFAULT_PRICES = {
   pro: { monthly: 49900, annual: 499000 },
   business: { monthly: 169000, annual: 1690000 },
+  app: { once: 149000 },
 };
 
 export const PLAN_INFO = {
@@ -39,6 +48,17 @@ export const PLAN_INFO = {
       "No ads in the factory",
     ],
   },
+  app: {
+    name: "App Pass",
+    tagline: "Pay once to publish one app. No subscription.",
+    oneTime: true,
+    features: [
+      "Pro features for one app, for good",
+      "Signed, Play-ready AAB releases",
+      "Unlimited updates and rebuilds",
+      "Splash art, app colour and no instApped badge",
+    ],
+  },
   business: {
     name: "Business",
     tagline: "Publish apps for clients and your company.",
@@ -58,9 +78,9 @@ export function prices(env) {
     const custom = env && env.PRICING_JSON ? JSON.parse(env.PRICING_JSON) : null;
     if (custom && typeof custom === "object") {
       const out = {};
-      for (const plan of ["pro", "business"]) {
+      for (const plan of PAID_PLANS) {
         out[plan] = {};
-        for (const period of ["monthly", "annual"]) {
+        for (const period of Object.keys(DEFAULT_PRICES[plan])) {
           const v = Number(custom?.[plan]?.[period]);
           out[plan][period] = Number.isInteger(v) && v >= 2000 ? v : DEFAULT_PRICES[plan][period];
         }
@@ -81,7 +101,7 @@ export function plansPayload(env) {
     ok: true,
     currency: CURRENCY,
     paymentsEnabled: paymentsEnabled(env),
-    plans: TIERS.map((id) => ({
+    plans: ["free", "app", "pro", "business"].map((id) => ({
       id,
       ...PLAN_INFO[id],
       prices: id === "free" ? { monthly: 0, annual: 0 } : p[id],
@@ -125,10 +145,13 @@ export function safeEqual(a, b) {
 
 // ---------------------------------------------------------------- licenses
 
-export async function issueLicense(secret, { plan, exp, ref }) {
+export async function issueLicense(secret, { plan, exp, ref, pkg }) {
   if (!secret) throw new Error("LICENSE_SECRET is not configured");
-  if (!["pro", "business"].includes(plan)) throw new Error("Unknown plan");
-  const body = b64url(enc.encode(JSON.stringify({ v: 1, plan, exp: Math.floor(exp), ref: String(ref || "") })));
+  if (!PAID_PLANS.includes(plan)) throw new Error("Unknown plan");
+  if (plan === "app" && !validPackage(pkg)) throw new Error("An App Pass needs a valid package ID");
+  const payload = { v: 1, plan, exp: Math.floor(exp), ref: String(ref || "") };
+  if (plan === "app") payload.pkg = pkg;
+  const body = b64url(enc.encode(JSON.stringify(payload)));
   const sig = b64url(await hmacBytes(secret, "IAL1." + body));
   return `IAL1.${body}.${sig}`;
 }
@@ -141,13 +164,18 @@ export async function verifyLicense(secret, key, now = Date.now()) {
   if (!safeEqual(expected, parts[2])) return { valid: false, reason: "That license key isn't valid." };
   let payload;
   try { payload = JSON.parse(dec.decode(fromB64url(parts[1]))); } catch { return { valid: false, reason: "That license key is damaged." }; }
-  if (!["pro", "business"].includes(payload.plan)) return { valid: false, reason: "Unknown plan in license key." };
-  if (!(payload.exp > now)) return { valid: false, expired: true, plan: payload.plan, exp: payload.exp, ref: payload.ref, reason: "This license has expired. Renew it on the Plans page." };
-  return { valid: true, plan: payload.plan, exp: payload.exp, ref: payload.ref };
+  if (!PAID_PLANS.includes(payload.plan)) return { valid: false, reason: "Unknown plan in license key." };
+  if (payload.plan === "app" && !validPackage(payload.pkg)) return { valid: false, reason: "That App Pass is damaged." };
+  const pkg = payload.plan === "app" ? { pkg: payload.pkg } : {};
+  if (!(payload.exp > now)) return { valid: false, expired: true, plan: payload.plan, exp: payload.exp, ref: payload.ref, ...pkg, reason: "This license has expired. Renew it on the Plans page." };
+  return { valid: true, plan: payload.plan, exp: payload.exp, ref: payload.ref, ...pkg };
 }
 
-/** Decide the caller's tier. The owner's signing token always counts as Business. */
-export async function resolveTier(env, { licenseKey, ownerToken }) {
+/**
+ * Decide the caller's tier. The owner's signing token always counts as Business.
+ * An App Pass counts as Pro, but only for builds of the package ID it was bought for.
+ */
+export async function resolveTier(env, { licenseKey, ownerToken, packageName }) {
   if (ownerToken && env.CASTEL_SIGNING_ACCESS_TOKEN && safeEqual(ownerToken, env.CASTEL_SIGNING_ACCESS_TOKEN)) {
     return { tier: "business", owner: true };
   }
@@ -156,6 +184,10 @@ export async function resolveTier(env, { licenseKey, ownerToken }) {
     if (v.valid) {
       if (env.LICENSES && v.ref) {
         try { if (await env.LICENSES.get("revoked:" + v.ref)) return { tier: "free", licenseError: "This license was revoked. Contact support." }; } catch {}
+      }
+      if (v.plan === "app") {
+        if (packageName && packageName === v.pkg) return { tier: "pro", exp: v.exp, appPass: v.pkg };
+        return { tier: "free", appPass: v.pkg, licenseError: `This App Pass is for ${v.pkg}. Use that package ID, or get a pass for this app.` };
       }
       return { tier: v.plan, exp: v.exp };
     }
@@ -209,15 +241,19 @@ function randomRef() {
   return "IA-" + hex(b).toUpperCase();
 }
 
-export async function createCheckout(env, { plan, period, email, factoryUrl }) {
+export async function createCheckout(env, { plan, period, email, factoryUrl, packageName }) {
   if (!paymentsEnabled(env)) throw Object.assign(new Error("Payments aren't set up yet."), { status: 503 });
-  if (!["pro", "business"].includes(plan)) throw Object.assign(new Error("Choose the Pro or Business plan."), { status: 400 });
-  if (!["monthly", "annual"].includes(period)) throw Object.assign(new Error("Choose monthly or annual billing."), { status: 400 });
+  if (!PAID_PLANS.includes(plan)) throw Object.assign(new Error("Choose App Pass, Pro or Business."), { status: 400 });
+  const pkg = String(packageName || "").trim();
+  if (plan === "app") {
+    period = "once";
+    if (!validPackage(pkg)) throw Object.assign(new Error("Enter your app's package ID (like com.yourname.app) before buying an App Pass."), { status: 400 });
+  } else if (!["monthly", "annual"].includes(period)) throw Object.assign(new Error("Choose monthly or annual billing."), { status: 400 });
   const amount = prices(env)[plan][period];
   const base = String(factoryUrl || "https://create.instapped.com").replace(/\/+$/, "");
   const reference = randomRef();
   const methods = String(env.PAYMONGO_METHODS || "card,gcash,paymaya").split(",").map((s) => s.trim()).filter(Boolean);
-  const name = `instApped ${PLAN_INFO[plan].name} (${period === "annual" ? "1 year" : "1 month"})`;
+  const name = plan === "app" ? `instApped App Pass (${pkg})` : `instApped ${PLAN_INFO[plan].name} (${period === "annual" ? "1 year" : "1 month"})`;
   const attributes = {
     line_items: [{ currency: CURRENCY, amount, name, quantity: 1 }],
     payment_method_types: methods,
@@ -228,7 +264,7 @@ export async function createCheckout(env, { plan, period, email, factoryUrl }) {
     send_email_receipt: true,
     show_description: true,
     show_line_items: true,
-    metadata: { product: "instapped", plan, period },
+    metadata: plan === "app" ? { product: "instapped", plan, period, pkg } : { product: "instapped", plan, period },
   };
   if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) attributes.billing = { email: String(email).slice(0, 200) };
   const data = await paymongo(env, "/checkout_sessions", { method: "POST", body: JSON.stringify({ data: { attributes } }) });
@@ -253,6 +289,7 @@ export function readSession(session) {
     plan: meta.plan,
     period: meta.period,
     product: meta.product,
+    pkg: meta.pkg || "",
     paidAt: paidAtSec > 0 ? paidAtSec * 1000 : null,
     reference: a.reference_number || "",
   };
@@ -266,15 +303,26 @@ export async function claimCheckout(env, { sessionId, currentKey }) {
   }
   const session = await paymongo(env, "/checkout_sessions/" + encodeURIComponent(sessionId));
   const s = readSession(session);
-  if (s.product !== "instapped" || !["pro", "business"].includes(s.plan) || !PERIOD_DAYS[s.period]) {
+  const isPass = s.plan === "app" && s.period === "once" && validPackage(s.pkg);
+  if (s.product !== "instapped" || !(isPass || (["pro", "business"].includes(s.plan) && PERIOD_DAYS[s.period]))) {
     throw Object.assign(new Error("That payment isn't an instApped plan."), { status: 400 });
   }
   if (!s.paid) return { ok: false, pending: true, error: "Payment hasn't completed yet. If you just paid, wait a moment and try again." };
+  if (isPass) {
+    const key = await issueLicense(env.LICENSE_SECRET, { plan: "app", exp: APP_PASS_EXP, ref: sessionId, pkg: s.pkg });
+    if (env.LICENSES) {
+      try {
+        await env.LICENSES.put("session:" + sessionId, key);
+        if (s.reference) await env.LICENSES.put("ref:" + s.reference, sessionId);
+      } catch {}
+    }
+    return { ok: true, key, plan: "app", exp: APP_PASS_EXP, pkg: s.pkg, reference: s.reference };
+  }
   let start = s.paidAt || Date.now();
   // Renewing early adds the new period to the remaining time on the same or a lower plan.
   if (currentKey) {
     const cur = await verifyLicense(env.LICENSE_SECRET, currentKey);
-    if (cur.valid && tierRank(cur.plan) <= tierRank(s.plan) && cur.exp > start) start = cur.exp;
+    if (cur.valid && cur.plan !== "app" && tierRank(cur.plan) <= tierRank(s.plan) && cur.exp > start) start = cur.exp;
   }
   const exp = start + (PERIOD_DAYS[s.period] + GRACE_DAYS) * 86400000;
   const key = await issueLicense(env.LICENSE_SECRET, { plan: s.plan, exp, ref: sessionId });
@@ -289,7 +337,7 @@ export async function claimCheckout(env, { sessionId, currentKey }) {
 
 async function describe(env, key) {
   const v = await verifyLicense(env.LICENSE_SECRET, key, 0);
-  return { key, plan: v.plan, exp: v.exp };
+  return { key, plan: v.plan, exp: v.exp, ...(v.pkg ? { pkg: v.pkg } : {}) };
 }
 
 /** Find a checkout session from the reference shown on the receipt (needs the LICENSES KV binding). */
