@@ -4,7 +4,7 @@
 // is the factory from the main branch, fetched live (cached briefly), so the
 // master edition always mirrors the public site.
 
-import { safeEqual, issueLicense, PLAN_INFO, validPackage, APP_PASS_EXP } from "./billing.js";
+import { safeEqual, issueLicense, PLAN_INFO, validPackage, APP_PASS_EXP, LAUNCH_DAYS, isPassPlan } from "./billing.js";
 
 const COOKIE = "ia_owner";
 const SESSION_DAYS = 30;
@@ -157,20 +157,20 @@ export function configStatus(env) {
 /** Issue a complimentary license (for clients, partners or testing). */
 export async function adminIssue(env, { plan, days, note, pkg }) {
   if (!env.LICENSE_SECRET) throw Object.assign(new Error("Set LICENSE_SECRET first."), { status: 503 });
-  if (!["pro", "business", "app"].includes(plan)) throw Object.assign(new Error("Choose Pro, Business or App Pass."), { status: 400 });
+  if (!["pro", "business", "app", "launch"].includes(plan)) throw Object.assign(new Error("Choose Pro, Business, App Pass or Launch Pass."), { status: 400 });
   const appPkg = String(pkg || "").trim();
-  if (plan === "app" && !validPackage(appPkg)) throw Object.assign(new Error("Enter the app's package ID for the App Pass."), { status: 400 });
-  const d = plan === "app" ? 0 : Math.round(Number(days));
-  if (plan !== "app" && !(d >= 1 && d <= 3660)) throw Object.assign(new Error("Days must be between 1 and 3660."), { status: 400 });
+  if (isPassPlan(plan) && !validPackage(appPkg)) throw Object.assign(new Error("Enter the app's package ID for the pass."), { status: 400 });
+  const d = plan === "app" ? 0 : plan === "launch" ? LAUNCH_DAYS : Math.round(Number(days));
+  if (!isPassPlan(plan) && !(d >= 1 && d <= 3660)) throw Object.assign(new Error("Days must be between 1 and 3660."), { status: 400 });
   const rand = new Uint8Array(6);
   crypto.getRandomValues(rand);
   const ref = "comp:" + Array.from(rand, (b) => b.toString(16).padStart(2, "0")).join("");
   const exp = plan === "app" ? APP_PASS_EXP : Date.now() + d * 86400000;
-  const key = await issueLicense(env.LICENSE_SECRET, { plan, exp, ref, ...(plan === "app" ? { pkg: appPkg } : {}) });
+  const key = await issueLicense(env.LICENSE_SECRET, { plan, exp, ref, ...(isPassPlan(plan) ? { pkg: appPkg } : {}) });
   if (env.LICENSES) {
-    try { await env.LICENSES.put("issued:" + ref, JSON.stringify({ plan, exp, ...(plan === "app" ? { pkg: appPkg } : {}), note: String(note || "").slice(0, 200), at: Date.now() })); } catch {}
+    try { await env.LICENSES.put("issued:" + ref, JSON.stringify({ plan, exp, ...(isPassPlan(plan) ? { pkg: appPkg } : {}), note: String(note || "").slice(0, 200), at: Date.now() })); } catch {}
   }
-  return { key, plan, exp, ref, name: PLAN_INFO[plan].name, ...(plan === "app" ? { pkg: appPkg } : {}) };
+  return { key, plan, exp, ref, name: PLAN_INFO[plan].name, ...(isPassPlan(plan) ? { pkg: appPkg } : {}) };
 }
 
 export async function adminRevoke(env, { ref }) {

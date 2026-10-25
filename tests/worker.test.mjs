@@ -105,7 +105,10 @@ test("GET /plans lists the plans in PHP, with the one-time App Pass, and reports
   const { status, json } = await call("/plans");
   assert.equal(status, 200);
   assert.equal(json.currency, "PHP");
-  assert.deepEqual(json.plans.map((p) => p.id), ["free", "app", "pro", "business"]);
+  assert.deepEqual(json.plans.map((p) => p.id), ["free", "launch", "app", "pro", "business"]);
+  const launch = json.plans.find((p) => p.id === "launch");
+  assert.equal(launch.oneTime, true);
+  assert.deepEqual(launch.prices, { once: 29900 });
   const pass = json.plans.find((p) => p.id === "app");
   assert.equal(pass.oneTime, true);
   assert.deepEqual(pass.prices, { once: 149000 });
@@ -264,7 +267,7 @@ test("free plan daily build limit", async () => {
 
 test("health reports the premium revision", async () => {
   const { json } = await call("/health");
-  assert.equal(json.revision, "instapped-app-pass-v1");
+  assert.equal(json.revision, "instapped-launch-pass-v1");
 });
 
 // ------------------------------------------------------------- App Pass
@@ -342,4 +345,49 @@ test("the owner can issue a complimentary App Pass", async () => {
   assert.equal(out.name, "App Pass");
   const v = await verifyLicense(SECRET, out.key);
   assert.equal(v.pkg, "com.gift.app");
+});
+
+// ----------------------------------------------------------- Launch Pass
+
+test("Launch Pass checkout charges the budget price for one package ID", async () => {
+  const { status, json } = await call("/checkout", { method: "POST", body: { plan: "launch", packageName: "com.cheap.app", amount: 1 } });
+  assert.equal(status, 200);
+  const a = sessions.get(json.sessionId).data.attributes;
+  assert.equal(a.line_items[0].amount, 29900);
+  assert.match(a.line_items[0].name, /Launch Pass \(com\.cheap\.app\)/);
+  assert.deepEqual(a.metadata, { product: "instapped", plan: "launch", period: "once", pkg: "com.cheap.app" });
+  assert.equal((await call("/checkout", { method: "POST", body: { plan: "launch" } })).status, 400, "a package ID is required");
+});
+
+test("a paid Launch Pass unlocks Pro for its app for 7 days from payment", async () => {
+  const { json } = await call("/checkout", { method: "POST", body: { plan: "launch", packageName: "com.test.app" } });
+  const paidAt = Math.floor(Date.now() / 1000);
+  markPaid(json.sessionId, paidAt);
+  const c = await call("/license/claim", { method: "POST", body: { sessionId: json.sessionId } });
+  assert.equal(c.json.plan, "launch");
+  assert.equal(c.json.pkg, "com.test.app");
+  assert.equal(c.json.exp, paidAt * 1000 + 8 * 86400000, "7 days plus a day of grace");
+  const ok = await call("/build", { method: "POST", body: { ...baseBuild, licenseKey: c.json.key, signing: true } });
+  assert.equal(ok.status, 202);
+  assert.equal(ok.json.tier, "pro");
+  const other = await call("/build", { method: "POST", body: { ...baseBuild, packageName: "com.other.app", licenseKey: c.json.key, signing: true } });
+  assert.equal(other.status, 402);
+  assert.match(other.json.error, /Launch Pass is for com\.test\.app/);
+});
+
+test("an ended Launch Pass falls back to Free and points to the App Pass", async () => {
+  const key = await issueLicense(SECRET, { plan: "launch", exp: Date.now() - 1000, ref: "cs_l", pkg: "com.test.app" });
+  const r = await call("/build", { method: "POST", body: { ...baseBuild, licenseKey: key, signing: true } });
+  assert.equal(r.status, 402);
+  assert.match(r.json.error, /Launch Pass for com\.test\.app has ended\. Get an App Pass/);
+  const v = await call("/license/verify", { method: "POST", body: { key } });
+  assert.equal(v.json.valid, false);
+  assert.equal(v.json.expired, true);
+  assert.equal(v.json.pkg, "com.test.app");
+});
+
+test("the owner can issue a Launch Pass", async () => {
+  const out = await adminIssue(env, { plan: "launch", pkg: "com.gift.app" });
+  assert.equal(out.plan, "launch");
+  assert.ok(Math.abs(out.exp - (Date.now() + 7 * 86400000)) < 5000);
 });
