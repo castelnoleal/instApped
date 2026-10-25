@@ -19,7 +19,7 @@ const MAX_ICON_BASE64 = 8_000_000;
 const MAX_SPLASH_BASE64 = 11_000_000;
 const CHUNK_CHARS = 800_000;
 // Re-deploy to verify the live GitHub and signing secret configuration.
-const BUILD_BRIDGE_REVISION = "instapped-app-pass-v1";
+const BUILD_BRIDGE_REVISION = "instapped-launch-pass-v1";
 const SIGNING_ACCESS_HEADER = "X-Castel-Signing-Access";
 
 async function signingTokenMatches(candidate, expected) {

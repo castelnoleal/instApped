@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>instApped — Turn your website into an Android app</title>
-<meta name="description" content="Turn your website into an Android app. No coding, nothing to install. Start free, then publish on Google Play with a one-time App Pass or a plan from ₱499 a month.">
+<meta name="description" content="Turn your website into an Android app. No coding, nothing to install. Start free, then publish on Google Play from ₱299, paid once.">
 <meta name="theme-color" content="#101a2e">
 <link rel="canonical" href="https://instapped.com/">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
@@ -166,9 +166,9 @@ section{scroll-margin-top:80px}
 .steps span{color:var(--muted)}
 
 /* Plans */
-.plans{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
-.plan .amount{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:0 0 14px}
-.plan .amount small{font-size:14px;font-weight:600;letter-spacing:0;color:var(--muted)}
+.plans{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+.plan .amount{font-size:27px;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin:0 0 14px}
+.plan .amount small{display:block;margin-top:2px;white-space:nowrap;font-size:13.5px;font-weight:600;letter-spacing:0;color:var(--muted)}
 .plan.pro .amount small{color:#a8b3ca}
 .plans-note{margin:20px 0 0;color:var(--muted);font-size:16px}
 .plan{border:1px solid var(--line);border-radius:20px;padding:28px;background:var(--surface)}
@@ -195,6 +195,9 @@ section{scroll-margin-top:80px}
 .band .btn.primary{background:#e0b050;border-color:#e0b050;color:#1a1405;flex:none}
 .band-box{position:absolute;right:-30px;bottom:-60px;font-size:220px;line-height:1;opacity:.07;pointer-events:none}
 
+@media (max-width:1180px){
+  .plans{grid-template-columns:repeat(3,1fr)}
+}
 @media (max-width:980px){
   .hero{grid-template-columns:1fr;gap:44px;padding:44px 0 64px}
   .journey{max-width:460px;width:100%;margin:0 auto}
@@ -387,6 +390,12 @@ section{scroll-margin-top:80px}
         <p>Make your app and test it on your phone.</p>
       </article>
       <article class="plan">
+        <span class="tag">Launch Pass</span>
+        <div class="amount">₱299 <small>one-time</small></div>
+        <h3>Just publish it</h3>
+        <p>The lowest price to get one app on Google Play. Pro features for 7 days, then you're done.</p>
+      </article>
+      <article class="plan">
         <span class="tag">App Pass</span>
         <div class="amount">₱1,490 <small>one-time</small></div>
         <h3>Publish one app</h3>
@@ -417,11 +426,11 @@ section{scroll-margin-top:80px}
       </details>
       <details>
         <summary>Can I put my app on Google Play?</summary>
-        <p>Yes. Get an App Pass to publish one app with a single payment, or choose Pro or Business for all your apps. You publish from your own Google Play account.</p>
+        <p>Yes. Get a Launch Pass or App Pass to publish one app with a single payment, or choose Pro or Business for all your apps. You publish from your own Google Play account.</p>
       </details>
       <details>
         <summary>Do I have to subscribe?</summary>
-        <p>No. The App Pass is a one-time payment for one app, and every update to that app is free.</p>
+        <p>No. A Launch Pass (₱299) gets one app published, and an App Pass (₱1,490) also covers every future update of that app. Both are one-time payments.</p>
       </details>
       <details>
         <summary>Who owns the app?</summary>
