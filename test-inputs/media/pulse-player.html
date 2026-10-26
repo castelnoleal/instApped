@@ -918,7 +918,7 @@ async function scanDevice({ silent = false } = {}) {
   render();
   if (!S.cur && S.tracks.size) { const list = sortedLib(); S.queue = list.map(t => t.id); S.orig = S.queue.slice(); S.qi = 0; S.ctxName = 'Songs'; loadTrack(S.queue[0], { autoplay: false }); }
   const total = [...S.tracks.values()].filter(t => t.mid != null).length;
-  if (!silent) toast(added ? `Found ${added} new song${added > 1 ? 's' : ''} · ${total} on this device` : total ? `Up to date · ${total} song${total > 1 ? 's' : ''} on this device` : 'No music found on this device', 3000);
+  if (!silent) toast(added === total && added ? `Found ${added} song${added > 1 ? 's' : ''} on this device` : added ? `Found ${added} new song${added > 1 ? 's' : ''} · ${total} on this device` : total ? `Up to date · ${total} song${total > 1 ? 's' : ''} on this device` : 'No music found on this device', 3000);
   else if (added) toast(`Added ${added} new song${added > 1 ? 's' : ''} from this device`, 2500);
   else if (gone.length) toast(`${gone.length} song${gone.length > 1 ? 's were' : ' was'} removed from this device`, 2500);
 }
@@ -1378,7 +1378,7 @@ async function openSettings() {
   ${CAN_WATCH_FOLDER ? `<div class="srow"><div><b>Music folder</b><br><small id="fldName">${folderName ? esc(folderName) : 'None chosen'}</small></div><div style="display:flex;gap:6px">${folderName ? '<button class="btn" data-set="rescanfolder">Rescan</button>' : ''}<button class="btn" data-set="watch">${folderName ? 'Change' : 'Choose'}</button></div></div>` : ''}
   <div class="srow"><div><b>Library</b><br><small>${S.tracks.size} songs${usage ? ' · ' + usage : ''}</small></div><div style="display:flex;gap:6px"><button class="btn" data-set="addfiles">Add</button><button class="btn dan" data-set="clear" ${S.tracks.size ? '' : 'disabled'}>Clear</button></div></div>
   ${S.persistOK ? '' : '<div class="srow"><small style="color:#ff4d5e">This device blocks storage, so your library resets when the app closes.</small></div>'}
-  <div class="srow" style="display:block"><b>Keyboard shortcuts</b><div class="kbd" style="margin-top:8px"><kbd>Space</kbd><span>Play / pause</span><kbd>← →</kbd><span>Seek 5 seconds</span><kbd>Shift + ← →</kbd><span>Previous / next song</span><kbd>↑ ↓</kbd><span>Volume</span><kbd>M</kbd><span>Mute</span><kbd>S</kbd><span>Shuffle</span><kbd>R</kbd><span>Repeat</span><kbd>L</kbd><span>Favorite</span><kbd>/</kbd><span>Search</span></div></div>
+  <div class="srow" style="display:${MOBILE ? 'none' : 'block'}"><b>Keyboard shortcuts</b><div class="kbd" style="margin-top:8px"><kbd>Space</kbd><span>Play / pause</span><kbd>← →</kbd><span>Seek 5 seconds</span><kbd>Shift + ← →</kbd><span>Previous / next song</span><kbd>↑ ↓</kbd><span>Volume</span><kbd>M</kbd><span>Mute</span><kbd>S</kbd><span>Shuffle</span><kbd>R</kbd><span>Repeat</span><kbd>L</kbd><span>Favorite</span><kbd>/</kbd><span>Search</span></div></div>
   <div class="srow"><small>Pulse Player 1.0 · Works offline. Your music never leaves this device.</small></div>`, b => {
     b.querySelectorAll('[data-theme-set]').forEach(c => c.onclick = () => { S.set.theme = c.dataset.themeSet; saveSet(); applyTheme(); b.querySelectorAll('[data-theme-set]').forEach(x => x.classList.toggle('on', x === c)); });
     b.querySelectorAll('[data-accent]').forEach(c => c.onclick = () => { S.set.accent = c.dataset.accent; saveSet(); applyTheme(); b.querySelectorAll('[data-accent]').forEach(x => x.classList.toggle('on', x === c)); });
