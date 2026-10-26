@@ -300,6 +300,40 @@ def clean_url(value):
     return str(value or "").strip().strip('"').strip("'")
 
 
+MEDIA_MARKER = b"CastelMedia"
+
+
+def uses_media_player(cfg, web_source):
+    """Music support (device library scan, media notification, background playback).
+
+    On when the manifest sets mediaPlayer, or automatically when an uploaded HTML/ZIP
+    page uses window.CastelMedia. Other apps never get the extra permissions.
+    """
+    explicit = cfg.get("mediaPlayer")
+    if isinstance(explicit, bool):
+        return explicit
+    if web_source:
+        return False
+    source = Path(os.environ.get("SOURCE_FILE", "") or "")
+    if not source.is_file():
+        return False
+    name = str(cfg.get("sourceFileName", source.name)).lower().strip()
+    if not name.endswith(".zip"):
+        return MEDIA_MARKER in source.read_bytes()
+    try:
+        with zipfile.ZipFile(source) as zf:
+            for info in zf.infolist():
+                if info.is_dir() or info.file_size > 20 * 1024 * 1024:
+                    continue
+                if not info.filename.lower().endswith((".html", ".htm", ".js", ".mjs")):
+                    continue
+                if MEDIA_MARKER in zf.read(info):
+                    return True
+    except (zipfile.BadZipFile, OSError):
+        return False
+    return False
+
+
 def generate():
     manifest_path = Path(os.environ["BUILD_MANIFEST"])
     output = Path(os.environ.get("BUILD_OUTPUT", "generated-app"))
@@ -332,7 +366,20 @@ def generate():
         shutil.rmtree(output)
     shutil.copytree(TEMPLATE, output)
     play_billing = bool(cfg.get("playBilling", False))
+    media_player = uses_media_player(cfg, web_source)
     optional_dir = output / "optional"
+    if media_player:
+        # Music support is only compiled into apps that use it.
+        media_dir = optional_dir / "media"
+        java_dir = next((output / "app" / "src" / "main" / "java").rglob("MainActivity.java")).parent
+        for java_name in ("MediaBridge.java", "MediaPlaybackService.java"):
+            if not (media_dir / java_name).is_file():
+                fail(f"{java_name} is missing from the template")
+            shutil.copy2(media_dir / java_name, java_dir / java_name)
+        drawables = output / "app" / "src" / "main" / "res" / "drawable"
+        drawables.mkdir(parents=True, exist_ok=True)
+        for icon in (media_dir / "res" / "drawable").glob("*.xml"):
+            shutil.copy2(icon, drawables / icon.name)
     if play_billing:
         # Google Play Billing is only compiled into apps that ask for it.
         billing_java = optional_dir / "PlayBilling.java"
@@ -356,6 +403,11 @@ def generate():
         if anchor not in text:
             fail("Couldn't add the Play Billing dependency to build.gradle")
         text = text.replace(anchor, anchor + "    implementation 'com.android.billingclient:billing:8.0.0'\n", 1)
+    if media_player:
+        anchor = "    implementation 'androidx.fragment:fragment:1.8.5'\n"
+        if anchor not in text:
+            fail("Couldn't add the media dependency to build.gradle")
+        text = text.replace(anchor, anchor + "    implementation 'androidx.media:media:1.7.0'\n", 1)
     gradle_file.write_text(text, encoding="utf-8")
 
     theme_hex, theme_int = parse_color(cfg.get("themeColor"), "#080B14")
@@ -404,6 +456,7 @@ def generate():
         "PAGE_NOTIFICATIONS": java_bool(cfg.get("pageNotifications", False)),
         "SPLASH_BADGE": java_bool(cfg.get("brandBadge", False)),
         "PLAY_BILLING": java_bool(play_billing),
+        "MEDIA_PLAYER": java_bool(media_player),
     }
 
     java_root = output / "app" / "src" / "main" / "java"
@@ -453,9 +506,26 @@ def generate():
         extra_permissions += ["android.permission.RECORD_AUDIO", "android.permission.MODIFY_AUDIO_SETTINGS"]
     if cfg.get("allowLocation"):
         extra_permissions += ["android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"]
+    if media_player:
+        extra_permissions += [
+            "android.permission.READ_MEDIA_AUDIO",
+            "android.permission.FOREGROUND_SERVICE",
+            "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+            "android.permission.WAKE_LOCK",
+        ]
     if extra_permissions:
         lines = "\n".join(f'    <uses-permission android:name="{p}" />' for p in extra_permissions)
         manifest_text = re.sub(r"    <!-- OPTIONAL_PERMISSIONS:[^>]*-->", lines, manifest_text, count=1)
+    if media_player:
+        manifest_text = manifest_text.replace(
+            "    <application",
+            '    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n    <application', 1)
+        manifest_text = manifest_text.replace(
+            "    </application>",
+            '        <service android:name=".MediaPlaybackService" android:exported="false"\n'
+            '            android:foregroundServiceType="mediaPlayback" />\n    </application>', 1)
+        if ".MediaPlaybackService" not in manifest_text:
+            fail("Couldn't register the music service in AndroidManifest.xml")
     if cfg.get("allowCamera"):
         manifest_text = manifest_text.replace("    <application", '    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application', 1)
     if cfg.get("allowCleartext") or (web_source and source_url.lower().startswith("http://")):

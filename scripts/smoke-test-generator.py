@@ -52,6 +52,9 @@ def run_case(name, package_name, source_type, source_bytes=b"", source_file_name
         assert not list((output / "app" / "src").rglob("PlayBilling.java")), "Play Billing must only be compiled in when asked for"
         assert not (output / "optional").exists()
         assert "billingclient" not in (output / "app" / "build.gradle").read_text(encoding="utf-8")
+        assert "MEDIA_PLAYER = false;" in text
+        assert not list((output / "app" / "src").rglob("MediaBridge.java")), "Music support must only be compiled in when used"
+        assert "READ_MEDIA_AUDIO" not in (output / "app" / "src" / "main" / "AndroidManifest.xml").read_text(encoding="utf-8")
 
         if source_type.startswith("HTTPS"):
             assert 'webView.loadUrl("https://example.com/")' in text
@@ -172,3 +175,49 @@ def billing_case():
 
 billing_case()
 print("Generator option and Play Billing checks passed.")
+
+
+def media_case():
+    """A page that uses window.CastelMedia gets music support (scan, media notification, background playback)."""
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        manifest = tmp / "manifest.json"
+        output = tmp / "generated"
+        source = tmp / "player.html"
+        source.write_text("<!doctype html><html><body><h1>Smoke player</h1><script>if (window.CastelMedia) CastelMedia.scan('x');</script></body></html>", encoding="utf-8")
+        manifest.write_text(json.dumps({
+            "appName": "Media Check", "packageName": "com.castel.mediacheck", "versionName": "1.0.0", "versionCode": 1,
+            "sourceType": "Uploaded HTML", "sourceFileName": "player.html",
+        }), encoding="utf-8")
+        env = os.environ.copy()
+        env.update(BUILD_MANIFEST=str(manifest), BUILD_OUTPUT=str(output), SOURCE_FILE=str(source), ICON_FILE="", SPLASH_FILE="")
+        subprocess.run(["python3", str(GENERATOR)], cwd=ROOT, env=env, check=True)
+        java_root = output / "app" / "src" / "main" / "java"
+        main = next(java_root.rglob("MainActivity.java")).read_text(encoding="utf-8")
+        assert "MEDIA_PLAYER = true;" in main
+        for name in ("MediaBridge.java", "MediaPlaybackService.java"):
+            assert "package com.castel.mediacheck;" in next(java_root.rglob(name)).read_text(encoding="utf-8")
+        assert (output / "app" / "src" / "main" / "res" / "drawable" / "castel_media_note.xml").is_file()
+        assert "androidx.media:media:" in (output / "app" / "build.gradle").read_text(encoding="utf-8")
+        manifest_xml = (output / "app" / "src" / "main" / "AndroidManifest.xml").read_text(encoding="utf-8")
+        for expected in ("READ_MEDIA_AUDIO", "FOREGROUND_SERVICE_MEDIA_PLAYBACK", 'android:maxSdkVersion="32"', ".MediaPlaybackService", 'foregroundServiceType="mediaPlayback"'):
+            assert expected in manifest_xml, f"manifest is missing {expected}"
+        assert not (output / "optional").exists()
+        # mediaPlayer:false wins over auto-detection.
+        manifest.write_text(json.dumps({
+            "appName": "Media Off", "packageName": "com.castel.mediaoff", "versionName": "1.0.0", "versionCode": 1,
+            "sourceType": "Uploaded HTML", "sourceFileName": "player.html", "mediaPlayer": False,
+        }), encoding="utf-8")
+        off = tmp / "off"
+        env["BUILD_OUTPUT"] = str(off)
+        subprocess.run(["python3", str(GENERATOR)], cwd=ROOT, env=env, check=True)
+        assert "MEDIA_PLAYER = false;" in next((off / "app" / "src" / "main" / "java").rglob("MainActivity.java")).read_text(encoding="utf-8")
+        if os.environ.get("MEDIA_BUILD", "1") != "0":
+            subprocess.run(["gradle", "-p", str(output), "lintDebug", "assembleDebug", "--no-daemon", "--stacktrace"], cwd=ROOT, check=True)
+            apk = output / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk"
+            with zipfile.ZipFile(apk) as z:
+                assert any(n.startswith("classes") for n in z.namelist())
+
+
+media_case()
+print("Music support checks passed.")
