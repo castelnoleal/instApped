@@ -7,10 +7,11 @@ PKG=com.castel.mediatest
 OUT=media-test/out
 mkdir -p "$OUT"
 dump() {
+  sleep 3
   adb logcat -d > "$OUT/logcat.txt" 2>/dev/null || true
   grep -E "MEDIA_TEST:|FATAL|AndroidRuntime|CastelAppFactory" "$OUT/logcat.txt" | grep -v "MEDIA_TEST:POS" | tail -n 60 || true
   # Surface the important lines as annotations (readable without downloading logs).
-  grep -E "MEDIA_TEST:|FATAL|E AndroidRuntime|MEDIA_|CONSOLE:(ERROR|WARNING)|Uncaught" "$OUT/logcat.txt" | grep -v "MEDIA_TEST:POS" | tail -n 8 | cut -c1-400 \
+  grep -E "CastelAppFactory|FATAL|E AndroidRuntime" "$OUT/logcat.txt" | grep -vE "MEDIA_TEST:POS|PAGE_|WEBVIEW_READY" | tail -n 9 | cut -c1-400 \
     | while IFS= read -r l; do echo "::error title=logcat::$l"; done
   adb exec-out screencap -p > "$OUT/last-screen.png" 2>/dev/null || true
 }

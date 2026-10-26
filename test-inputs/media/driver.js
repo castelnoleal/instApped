@@ -46,6 +46,11 @@
       }, 1000);
     } catch (e) {
       log('FAIL:' + step + ':' + (e && e.message));
+      try {
+        var a = P().audio, t = P().S.tracks.get(P().S.cur) || {};
+        log('DIAG:' + JSON.stringify({ src: (a.currentSrc || '').slice(-60), paused: a.paused, ct: a.currentTime, dur: a.duration, rs: a.readyState, ns: a.networkState, err: a.error && (a.error.code + ' ' + a.error.message), ctx: P().A.ctx ? P().A.ctx.state : (P().A.failed ? 'failed' : 'none'), wantUrl: (t.url || '').slice(-40), mime: t.mime }));
+        if (t.url) fetch(t.url, { headers: { Range: 'bytes=0-99' } }).then(function (r) { log('FETCH:' + r.status + ' ' + r.headers.get('content-type') + ' ' + r.headers.get('content-range')); }, function (e2) { log('FETCH_ERR:' + e2); });
+      } catch (e3) { log('DIAG_ERR:' + e3); }
     }
   }
   if (document.readyState === 'complete') run(); else addEventListener('load', run);
