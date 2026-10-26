@@ -35,7 +35,7 @@ The exact versions are centralized so the build template can be upgraded deliber
 
 ## Music apps (window.CastelMedia)
 
-Apps built from HTML/ZIP that use `window.CastelMedia` automatically get music support (set `"mediaPlayer": true/false` in the build manifest to force it on or off). Other apps never get the extra permissions.
+Apps built from HTML/ZIP that use `window.CastelMedia` get music support automatically. For any app, including website builds, turn on **Music player** under Permissions in the factory (it sends `"mediaPlayer": true`). Other apps never get the extra permissions.
 
 - **Finds music automatically:** `CastelMedia.scan(cb)` asks for the music permission and returns the device's songs (MediaStore) with URLs the page can play, seek and run through Web Audio.
 - **Notification, lock screen and headset controls:** `CastelMedia.update(json)` mirrors what's playing. Controls call `window.CastelMediaEvents(action, value)` (`play`, `pause`, `next`, `prev`, `seek`).

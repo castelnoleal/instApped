@@ -357,6 +357,7 @@ textarea.inp{min-height:110px;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monosp
     <div class="row"><span><b>Camera</b><small>Video calls, QR scanners and photo capture in the page</small></span><input type="checkbox" class="sw" data-k="cam"></div>
     <div class="row"><span><b>Microphone</b><small>Voice notes, calls and audio recording</small></span><input type="checkbox" class="sw" data-k="mic"></div>
     <div class="row"><span><b>Location</b><small>Maps and "near me" features using the device location</small></span><input type="checkbox" class="sw" data-k="loc"></div>
+    <div class="row"><span><b>Music player</b><small>For music apps: finds the songs on the device, shows play controls in the notification panel and on the lock screen, and keeps playing in the background. Pages use window.CastelMedia. Uploaded pages that use it get this automatically.</small></span><input type="checkbox" class="sw" data-k="music"></div>
     <div class="row"><span><b>Allow http:// connections</b><small>Needed only for insecure APIs or devices on your local network. Android blocks them otherwise.</small></span><input type="checkbox" class="sw" data-k="http"></div>
     <label class="f" style="margin-top:12px">App tag for your server (optional)<input type="text" data-k="ua" placeholder="MyApp/1.0" maxlength="60" autocapitalize="none" spellcheck="false"><span class="hint2">Added to the browser user agent so your website can tell when it's opened in the app.</span></label>
   </div></div>
@@ -727,7 +728,7 @@ function base64Blob(data,type){const raw=atob(data),bytes=new Uint8Array(raw.len
 const isZipName=n=>/\.zip$/i.test(n||"");
 const storedInDb=p=>!!(p&&p.fileName&&(isZipName(p.fileName)||p.htmlInDb));
 
-function blank(){return{id:"p"+Date.now().toString(36),name:"",pkg:"",vname:"1.0.0",vcode:1,orient:"auto",back:true,zoom:false,full:false,ext:true,stype:"file",html:"",fileName:"",url:"",icon:"",offline:true,update:true,cache:"std",sign:false,status:"draft",updated:Date.now(),hosts:"",ptr:false,awake:false,cam:false,mic:false,loc:false,http:false,upd:false,playupd:true,feed:"",feedh:"12",pnotif:false,gbill:false,whatsnew:"",devName:"",devEmail:"",devSite:"",privUrl:"",cat:"",hasAds:"no",shortDesc:"",fullDesc:"",pAcct:false,pAnalytics:false,pPay:false,pContent:false,ua:"",splash:"icon",sfit:"cover",sbg:"#080B14",smin:"600",theme:"#080B14",splashName:"",splashW:0,splashH:0}}
+function blank(){return{id:"p"+Date.now().toString(36),name:"",pkg:"",vname:"1.0.0",vcode:1,orient:"auto",back:true,zoom:false,full:false,ext:true,stype:"file",html:"",fileName:"",url:"",icon:"",offline:true,update:true,cache:"std",sign:false,status:"draft",updated:Date.now(),hosts:"",ptr:false,awake:false,cam:false,mic:false,loc:false,music:false,http:false,upd:false,playupd:true,feed:"",feedh:"12",pnotif:false,gbill:false,whatsnew:"",devName:"",devEmail:"",devSite:"",privUrl:"",cat:"",hasAds:"no",shortDesc:"",fullDesc:"",pAcct:false,pAnalytics:false,pPay:false,pContent:false,ua:"",splash:"icon",sfit:"cover",sbg:"#080B14",smin:"600",theme:"#080B14",splashName:"",splashW:0,splashH:0}}
 const HEX=/^#[0-9a-f]{6}$/i;
 const splashKey=id=>id+":splash";
 let splashURL="";
@@ -1121,6 +1122,7 @@ function checks(){
     const c=A.code,need=[];
     if(/getUserMedia|mediaDevices/.test(c)&&!S.cam&&!S.mic)need.push("camera or microphone (getUserMedia)");
     if(/geolocation\.(getCurrentPosition|watchPosition)/.test(c)&&!S.loc)need.push("location (navigator.geolocation)");
+    if(/CastelMedia/.test(c)&&!S.music)add("Music player","ok","Your page uses window.CastelMedia, so music support (device songs, notification controls, background playback) is added automatically.",1);
     const unsupported=[];
     if(/pushManager\.subscribe|PushManager/.test(c))unsupported.push("web push (notifications while the app is closed)");
     if(/Notification\.requestPermission|new Notification\(/.test(c)&&!S.pnotif)need.push("notifications (turn on Let pages show notifications under Offline)");
@@ -1137,6 +1139,7 @@ function checks(){
     if(f&&S.lastBuiltCode&&+S.vcode>S.lastBuiltCode)add("Update feed","ok","After this build, download the update feed and upload it so existing users are notified.",3);
   }
   if(S.cam||S.mic||S.loc)add("Permissions","ok","Requests "+[S.cam&&"camera",S.mic&&"microphone",S.loc&&"location"].filter(Boolean).join(", ")+". Google Play may ask you to explain why in the Data safety form.",1);
+  if(S.music)add("Music player","ok","Adds access to the device's music and a media playback service. In Play Console, declare the foreground service as \"Media playback\"."+(S.stype==="url"?" Your website must use window.CastelMedia for this to do anything.":""),1);
   if(S.cache==="aggr"&&S.stype==="url")add("Cache mode","warn","Aggressive caching may show old content from your live site.",3);
   if(S.cache==="first"&&!S.offline)add("Offline storage","warn","Offline first works best with Offline storage turned on.",3);
   const prem=premiumInUse();
@@ -1195,7 +1198,7 @@ $("#buildBtn").onclick=async()=>{
       themeColor:HEX.test(S.theme)?S.theme:"#080B14",splashBackground:HEX.test(S.sbg)?S.sbg:"#080B14",
       splashMode:S.splash==="art"&&S.splashName?"art":"icon",splashFit:S.sfit==="contain"?"contain":"cover",splashMinMs:Number(S.smin)||0,
       splashFileName:"",splashBase64:"",
-      pullToRefresh:Boolean(S.ptr),keepAwake:Boolean(S.awake),allowCamera:Boolean(S.cam),allowMicrophone:Boolean(S.mic),allowLocation:Boolean(S.loc),allowCleartext:Boolean(S.http),updateAlerts:Boolean(S.upd),playUpdates:S.playupd!==false,updateFeedUrl:S.upd?String(S.feed||"").trim():"",updateCheckHours:Number(S.feedh)||12,pageNotifications:Boolean(S.pnotif),playBilling:Boolean(S.gbill),
+      pullToRefresh:Boolean(S.ptr),keepAwake:Boolean(S.awake),allowCamera:Boolean(S.cam),allowMicrophone:Boolean(S.mic),allowLocation:Boolean(S.loc),...(S.music?{mediaPlayer:true}:{}),allowCleartext:Boolean(S.http),updateAlerts:Boolean(S.upd),playUpdates:S.playupd!==false,updateFeedUrl:S.upd?String(S.feed||"").trim():"",updateCheckHours:Number(S.feedh)||12,pageNotifications:Boolean(S.pnotif),playBilling:Boolean(S.gbill),
       internalHosts:String(S.hosts||"").split(",").map(h=>h.trim().replace(/^https?:\/\//i,"").split("/")[0].toLowerCase()).filter(h=>/^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(h)),
       userAgentSuffix:String(S.ua||"").trim()
     };
@@ -2008,6 +2011,7 @@ async function featureGraphic(){
   if(line&&y<=340)x.fillText(line,tx,y);
   return canvasBlob(c);
 }
+function musicOn(){let c="";try{c=String(A.code||"")}catch{}return Boolean(S.music)||(S.stype==="file"&&/CastelMedia/.test(c))}
 function dataPractices(){
   const d=[];
   if(S.pAcct)d.push(["Personal info","Name, email address and account details you provide when you sign in or create an account","App functionality, account management"]);
@@ -2016,6 +2020,7 @@ function dataPractices(){
   if(S.cam)d.push(["Photos and videos","Camera access, only when you use a feature that needs it","App functionality"]);
   if(S.mic)d.push(["Audio","Microphone access, only when you use a feature that needs it","App functionality"]);
   if(S.loc)d.push(["Location","Approximate or precise location, only when you allow it","App functionality"]);
+  if(musicOn())d.push(["Audio files","Music files on your device, read on the device to list and play them. They are not uploaded","App functionality"]);
   if(S.pAnalytics)d.push(["App activity and diagnostics","How you use the app, crash and performance data","Analytics"]);
   if(S.hasAds==="yes")d.push(["Device or other IDs","Advertising identifier","Advertising"]);
   return d;
@@ -2050,7 +2055,7 @@ function dataSafetyText(){
     `Do you provide a way for users to request that their data is deleted? ${S.devEmail?"Yes — by email to "+S.devEmail:"Add a contact email"}`,
     `Data shared with third parties: ${[S.pAnalytics&&"analytics",S.pPay&&"payments",S.hasAds==="yes"&&"advertising"].filter(Boolean).join(", ")||"none"}`,
     `Contains ads: ${S.hasAds==="yes"?"Yes":"No"}`,
-    `Permissions requested: ${[S.cam&&"camera",S.mic&&"microphone",S.loc&&"location",S.upd&&"notifications"].filter(Boolean).join(", ")||"internet only"}`].join("\n");
+    `Permissions requested: ${[S.cam&&"camera",S.mic&&"microphone",S.loc&&"location",musicOn()&&"music and audio files, media playback (foreground service)",S.upd&&"notifications"].filter(Boolean).join(", ")||"internet only"}`].join("\n");
 }
 function kitChecks(){
   const c=[],add=(ok,l,d)=>c.push({ok,l,d});

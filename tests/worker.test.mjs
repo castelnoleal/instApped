@@ -391,3 +391,12 @@ test("the owner can issue a Launch Pass", async () => {
   assert.equal(out.plan, "launch");
   assert.ok(Math.abs(out.exp - (Date.now() + 7 * 86400000)) < 5000);
 });
+
+test("the Music player switch reaches the build manifest; off leaves auto-detection alone", async () => {
+  const on = await call("/build", { method: "POST", body: { ...baseBuild, mediaPlayer: true } });
+  assert.equal(on.status, 202);
+  assert.equal(manifestOf().mediaPlayer, true);
+  githubPuts = [];
+  await call("/build", { method: "POST", body: { ...baseBuild, mediaPlayer: false } });
+  assert.equal("mediaPlayer" in manifestOf(), false);
+});
