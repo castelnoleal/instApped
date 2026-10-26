@@ -33,6 +33,18 @@ The exact versions are centralized so the build template can be upgraded deliber
 - `presets/` — importable projects for the Google Play editions of instApped.
 - `tests/` — unit and browser tests run in CI.
 
+## Music apps (window.CastelMedia)
+
+Apps built from HTML/ZIP that use `window.CastelMedia` automatically get music support (set `"mediaPlayer": true/false` in the build manifest to force it on or off). Other apps never get the extra permissions.
+
+- **Finds music automatically:** `CastelMedia.scan(cb)` asks for the music permission and returns the device's songs (MediaStore) with URLs the page can play, seek and run through Web Audio.
+- **Notification, lock screen and headset controls:** `CastelMedia.update(json)` mirrors what's playing. Controls call `window.CastelMediaEvents(action, value)` (`play`, `pause`, `next`, `prev`, `seek`, `duck`, `unduck`).
+- **Keeps playing in the background** with a media foreground service. It pauses for calls and other apps' audio, and when headphones are unplugged.
+- Adds `READ_MEDIA_AUDIO`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` and a `mediaPlayback` service. On Google Play, declare the media-playback foreground service in the app content form.
+- Reference app and emulator test: `test-inputs/media/pulse-player.html`, `.github/workflows/media-player-test.yml`.
+
+The full API is documented at the top of `android-template/optional/media/MediaBridge.java`.
+
 ## Signing
 
 Never commit a keystore, private signing key, or signing password. Release signing must be injected through GitHub Actions secrets or another secure secret manager.

@@ -145,6 +145,7 @@ public class MainActivity extends ComponentActivity {
     private static final boolean PAGE_NOTIFICATIONS = false;
     private static final boolean SPLASH_BADGE = false;
     private static final boolean PLAY_BILLING = false;
+    private static final boolean MEDIA_PLAYER = false;
     private static final String START_URL = "__TARGET_URL__";
     // ---- End of build options ----
 
@@ -314,6 +315,7 @@ public class MainActivity extends ComponentActivity {
         if (OFFLINE_STORAGE) offlineDataDir.mkdirs();
         webView.addJavascriptInterface(new OfflineStorageBridge(), "CastelApp");
         if (PLAY_BILLING) attachPlayBilling();
+        if (MEDIA_PLAYER) attachMediaBridge();
 
         connectivity = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         applyCacheMode();
@@ -350,6 +352,10 @@ public class MainActivity extends ComponentActivity {
         webView.setWebViewClient(new WebViewClientCompat() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (mediaHooks != null) {
+                    WebResourceResponse media = mediaHooks.intercept(request);
+                    if (media != null) return media;
+                }
                 return assetLoader.shouldInterceptRequest(request.getUrl());
             }
             @Override
@@ -737,7 +743,7 @@ public class MainActivity extends ComponentActivity {
 
     // ------------------------------------------------------------- permissions
 
-    private void requestAndroidPermissions(String[] permissions, Consumer<List<String>> onResult) {
+    void requestAndroidPermissions(String[] permissions, Consumer<List<String>> onResult) {
         List<String> granted = new ArrayList<>();
         List<String> missing = new ArrayList<>();
         for (String p : permissions) {
@@ -794,13 +800,17 @@ public class MainActivity extends ComponentActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (webView != null) webView.onPause();
+        activityResumed = false;
+        // A playing music app keeps its page running in the background (MediaPlaybackService
+        // holds the foreground notification); everything else pauses as before.
+        if (webView != null && !(mediaHooks != null && mediaHooks.keepRunning())) webView.onPause();
         CookieManager.getInstance().flush();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        activityResumed = true;
         if (webView != null) webView.onResume();
         if (UPDATE_ALERTS && PLAY_UPDATES) resumePlayUpdate();
     }
@@ -1120,6 +1130,53 @@ public class MainActivity extends ComponentActivity {
         String safe = error == null ? "" : error.replace("\\", "\\\\").replace("\"", "\\\"");
         String js = callback + "(" + ok + ",\"" + safe + "\")";
         runOnUiThread(() -> { if (webView != null) webView.evaluateJavascript(js, null); });
+    }
+
+    // ---- Music support (only compiled in when the page uses CastelMedia / mediaPlayer option) ----
+    /** Implemented by the optional MediaBridge class. */
+    interface MediaHooks {
+        WebResourceResponse intercept(WebResourceRequest request);
+        boolean keepRunning();
+        void close();
+    }
+    private volatile MediaHooks mediaHooks;
+    private boolean activityResumed;
+
+    @android.annotation.SuppressLint("JavascriptInterface")
+    private void attachMediaBridge() {
+        try {
+            Class<?> type = Class.forName(MainActivity.class.getPackage().getName() + ".MediaBridge");
+            Object bridge = type.getConstructor(MainActivity.class).newInstance(this);
+            mediaHooks = (MediaHooks) bridge;
+            webView.addJavascriptInterface(bridge, "CastelMedia");
+        } catch (Throwable t) {
+            Log.w(TAG, "Music support isn't available in this build", t);
+        }
+    }
+
+    /** True when the main WebView shows this app's own page (not a third-party site opened inside it). Main thread only. */
+    boolean isOwnPage() {
+        String url = webView == null ? null : webView.getUrl();
+        return url != null && isInternalHost(Uri.parse(url).getHost());
+    }
+
+    boolean askedBefore(String permission) {
+        return getSharedPreferences("instapped.media", MODE_PRIVATE).getBoolean("asked:" + permission, false);
+    }
+
+    void markAsked(String permission) {
+        getSharedPreferences("instapped.media", MODE_PRIVATE).edit().putBoolean("asked:" + permission, true).apply();
+    }
+
+    void runMediaScript(String js) {
+        if (webView != null) webView.evaluateJavascript(js, null);
+    }
+
+    /** Playback started or stopped while the app may be in the background. Main thread. */
+    void onMediaPlayingChanged(boolean playing) {
+        if (webView == null || activityResumed) return;
+        if (playing || (mediaHooks != null && mediaHooks.keepRunning())) webView.onResume();
+        else webView.onPause();
     }
 
     // ---- Google Play Billing (only compiled in when the playBilling option is on) ----
@@ -1658,6 +1715,7 @@ public class MainActivity extends ComponentActivity {
     @Override
     protected void onDestroy() {
         dataExecutor.shutdownNow();
+        if (mediaHooks != null) { try { mediaHooks.close(); } catch (Exception ignored) { } mediaHooks = null; }
         if (playBilling instanceof java.io.Closeable) {
             try { ((java.io.Closeable) playBilling).close(); } catch (Exception ignored) { }
         }

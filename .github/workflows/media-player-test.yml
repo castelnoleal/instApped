@@ -1,0 +1,143 @@
+name: Music Player Acceptance
+
+# Builds the Pulse music player (test-inputs/media) as an app and checks, on a real
+# Android emulator, that it finds the device's songs, plays, seeks, skips, moves on
+# when a song ends, keeps playing in the background, and shows working media controls.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/media-player-test.yml'
+      - 'android-template/**'
+      - 'scripts/generate-app.py'
+      - 'scripts/ci/media-emulator.sh'
+      - 'test-inputs/media/**'
+  pull_request:
+    paths:
+      - '.github/workflows/media-player-test.yml'
+      - 'android-template/**'
+      - 'scripts/generate-app.py'
+      - 'scripts/ci/media-emulator.sh'
+      - 'test-inputs/media/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  music-player:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Checkout factory
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools emulator'
+
+      - name: Install Android API 36
+        run: |
+          set -euo pipefail
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+
+      - name: Set up Gradle 9.3.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+
+      - name: Create music player fixture
+        run: |
+          set -euo pipefail
+          rm -rf media-test generated-app
+          mkdir -p media-test/songs
+          python3 - <<'PY'
+          import math, struct, wave
+          from pathlib import Path
+          # Three 20-second songs with different tones.
+          for i, (title, freq) in enumerate([("Alpha", 330), ("Bravo", 440), ("Charlie", 550)], 1):
+              path = Path(f"media-test/songs/pulse-test-{i}-{title}.wav")
+              with wave.open(str(path), "wb") as w:
+                  w.setnchannels(2); w.setsampwidth(2); w.setframerate(22050)
+                  frames = bytearray()
+                  for n in range(22050 * 20):
+                      v = int(9000 * math.sin(2 * math.pi * freq * n / 22050))
+                      frames += struct.pack("<hh", v, v)
+                  w.writeframes(bytes(frames))
+          page = Path("test-inputs/media/pulse-player.html").read_text(encoding="utf-8")
+          driver = Path("test-inputs/media/driver.js").read_text(encoding="utf-8")
+          assert "</body>" in page
+          Path("media-test/index.html").write_text(page.replace("</body>", "<script>\n" + driver + "\n</script>\n</body>", 1), encoding="utf-8")
+          PY
+          cat > media-test/manifest.json <<'JSON'
+          {
+            "appName": "Music Player Acceptance",
+            "packageName": "com.castel.mediatest",
+            "versionName": "1.0.0",
+            "versionCode": 1,
+            "sourceType": "Uploaded HTML",
+            "sourceMode": "html",
+            "sourceFileName": "index.html",
+            "orientation": "portrait",
+            "backNavigation": true
+          }
+          JSON
+
+      - name: Generate acceptance APK
+        env:
+          BUILD_MANIFEST: media-test/manifest.json
+          BUILD_OUTPUT: generated-app
+          SOURCE_FILE: media-test/index.html
+          ICON_FILE: ''
+        run: |
+          set -euo pipefail
+          python3 scripts/generate-app.py
+          # Music support switches on automatically because the page uses window.CastelMedia.
+          grep -F 'MEDIA_PLAYER = true' generated-app/app/src/main/java/com/castel/mediatest/MainActivity.java
+          test -f generated-app/app/src/main/java/com/castel/mediatest/MediaBridge.java
+          grep -F 'FOREGROUND_SERVICE_MEDIA_PLAYBACK' generated-app/app/src/main/AndroidManifest.xml
+
+      - name: Build acceptance APK
+        run: |
+          set -euo pipefail
+          gradle -p generated-app lintDebug assembleDebug --no-daemon --stacktrace
+          test -s generated-app/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Enable KVM for the Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm || true
+
+      - name: Runtime music player acceptance
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: true
+          emulator-options: '-no-window -no-boot-anim -gpu swiftshader_indirect -no-snapshot-save'
+          emulator-boot-timeout: 900
+          script: bash scripts/ci/media-emulator.sh
+
+      - name: Upload screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: music-player-acceptance
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            media-test/out/
+            generated-app/app/build/reports/lint-results-debug.html
