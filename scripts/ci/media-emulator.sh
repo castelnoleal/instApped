@@ -30,8 +30,13 @@ done
 adb shell cmd package list packages >/dev/null 2>&1 || { adb kill-server; adb start-server; timeout 120 adb wait-for-device; sleep 10; }
 
 # Songs on the "phone", like a user's music library.
-adb shell mkdir -p /sdcard/Music
-for f in media-test/songs/*; do adb push "$f" /sdcard/Music/ >/dev/null || fail "push $f failed"; done
+# Storage can come up a little after boot_completed; retry pushes.
+for _ in $(seq 1 30); do adb shell ls /sdcard/ >/dev/null 2>&1 && break; sleep 3; done
+for f in media-test/songs/*; do
+  ok=0
+  for _ in 1 2 3 4 5 6; do adb shell mkdir -p /sdcard/Music >/dev/null 2>&1; adb push "$f" /sdcard/Music/ >/dev/null 2>&1 && { ok=1; break; }; sleep 5; done
+  [ "$ok" = 1 ] || fail "push $f failed"
+done
 adb shell content call --uri content://media --method scan_volume --arg external_primary >/dev/null 2>&1 || true
 for f in media-test/songs/*; do adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d "file:///sdcard/Music/$(basename "$f")" >/dev/null 2>&1 || true; done
 for _ in $(seq 1 60); do

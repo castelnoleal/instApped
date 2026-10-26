@@ -569,22 +569,31 @@ const A = {
     try {
       const C = window.AudioContext || window.webkitAudioContext; if (!C) throw new Error('No Web Audio');
       const ctx = new C({ latencyHint: 'playback' });
-      const src = ctx.createMediaElementSource(audio);
       const mk = () => ctx.createGain();
-      const n = { src, fade: mk(), pre: mk(), eq: [], bass: ctx.createBiquadFilter(), boost: mk(), pan: ctx.createStereoPanner ? ctx.createStereoPanner() : null, lim: ctx.createDynamicsCompressor(), master: mk(), an: ctx.createAnalyser() };
+      const n = { src: null, fade: mk(), pre: mk(), eq: [], bass: ctx.createBiquadFilter(), boost: mk(), pan: ctx.createStereoPanner ? ctx.createStereoPanner() : null, lim: ctx.createDynamicsCompressor(), master: mk(), an: ctx.createAnalyser() };
       BANDS.forEach((f, i) => { const b = ctx.createBiquadFilter(); b.type = i === 0 ? 'lowshelf' : i === 9 ? 'highshelf' : 'peaking'; b.frequency.value = f; b.Q.value = 1.1; n.eq.push(b); });
       n.bass.type = 'lowshelf'; n.bass.frequency.value = 90;
       n.lim.threshold.value = -1.5; n.lim.knee.value = 0; n.lim.ratio.value = 20; n.lim.attack.value = .002; n.lim.release.value = .2;
       n.an.fftSize = 256; n.an.smoothingTimeConstant = .8;
-      let chain = [src, n.fade, n.pre, ...n.eq, n.bass, n.boost]; if (n.pan) chain.push(n.pan);
+      let chain = [n.fade, n.pre, ...n.eq, n.bass, n.boost]; if (n.pan) chain.push(n.pan);
       for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1]);
       n.tail = chain[chain.length - 1];
       n.master.connect(n.an); n.an.connect(ctx.destination);
-      this.ctx = ctx; this.n = n; this.route(); this.apply(true);
-      audio.volume = 1; audio.muted = false;
-      ctx.onstatechange = () => { if (ctx.state === 'interrupted' || ctx.state === 'suspended') { if (!audio.paused) ctx.resume().catch(() => {}); } };
+      this.ctx = ctx; this.n = n; this.route();
+      ctx.onstatechange = () => { if (ctx.state === 'running') this.attach(); else if (ctx.state === 'interrupted' || ctx.state === 'suspended') { if (!audio.paused) ctx.resume().catch(() => {}); } };
+      this.attach(); this.apply(true);
     } catch (e) { console.warn('Web Audio unavailable, effects disabled', e); this.failed = true; this.ctx = null; }
   },
+  // The song is routed through the effects only once the audio engine is actually running:
+  // an element wired into a suspended engine plays silently and never advances (seen on Android).
+  attach() {
+    if (!this.n || this.n.src || !this.ctx || this.ctx.state !== 'running') return;
+    try {
+      this.n.src = this.ctx.createMediaElementSource(audio); this.n.src.connect(this.n.fade);
+      audio.volume = 1; audio.muted = false; this.apply(true);
+    } catch (e) { console.warn('Effects unavailable', e); this.failed = true; }
+  },
+  get live() { return !!(this.n && this.n.src); },
   route() {
     if (!this.n) return; const n = this.n;
     try { n.tail.disconnect(); n.lim.disconnect(); } catch {}
@@ -593,7 +602,7 @@ const A = {
   p(param, v, inst) { if (!this.ctx) return; const t = this.ctx.currentTime; try { param.cancelScheduledValues(t); if (inst) param.setValueAtTime(v, t); else param.setTargetAtTime(v, t, .03); } catch { param.value = v; } },
   apply(inst) {
     const s = S.set;
-    if (!this.n) { audio.volume = clamp(s.vol * S.duck, 0, 1); audio.muted = !!s.muted; return; }
+    if (!this.n || !this.n.src) { audio.volume = clamp(s.vol * S.duck, 0, 1); audio.muted = !!s.muted; if (!this.n) return; }
     const n = this.n, eq = s.eqOn ? s.eq : Array(10).fill(0);
     eq.forEach((g, i) => this.p(n.eq[i].gain, g, inst));
     this.p(n.bass.gain, s.bass, inst);
@@ -603,7 +612,7 @@ const A = {
     if (n.pan) this.p(n.pan.pan, s.balance / 100, inst);
     this.p(n.master.gain, s.muted ? 0 : s.vol * s.vol * S.duck, inst);
   },
-  resume() { if (this.ctx && this.ctx.state !== 'running') return this.ctx.resume().catch(() => {}); },
+  resume() { if (this.ctx && this.ctx.state !== 'running') return this.ctx.resume().then(() => this.attach(), () => {}); this.attach(); },
   fadeIn() { if (!this.n) return; const g = this.n.fade.gain, t = this.ctx.currentTime; try { g.cancelScheduledValues(t); g.setValueAtTime(0.0001, t); g.linearRampToValueAtTime(1, t + .25); } catch { g.value = 1; } },
   fadeOut(sec = .18) { return new Promise(r => { if (!this.n || this.ctx.state !== 'running') return r(); const g = this.n.fade.gain, t = this.ctx.currentTime; try { g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0.0001, t + sec); } catch {} setTimeout(r, sec * 1000 + 20); }); },
   unfade() { if (this.n) { const t = this.ctx.currentTime; try { this.n.fade.gain.cancelScheduledValues(t); this.n.fade.gain.setValueAtTime(1, t); } catch { this.n.fade.gain.value = 1; } } }
