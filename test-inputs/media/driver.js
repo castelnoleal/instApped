@@ -21,8 +21,8 @@
       // Log notification/headset events as they arrive.
       var orig = window.CastelMediaEvents;
       window.CastelMediaEvents = function (a, v) { log('EVENT:' + a); return orig(a, v); };
-      step = 'SCAN'; await wait(function () { return [].slice.call(P().S.tracks.values()).filter(function (t) { return t.mid != null; }).length >= 3; }, 90000);
-      var dev = [].slice.call(P().S.tracks.values()).filter(function (t) { return t.mid != null; });
+      step = 'SCAN'; await wait(function () { return Array.from(P().S.tracks.values()).filter(function (t) { return t.mid != null; }).length >= 3; }, 90000);
+      var dev = Array.from(P().S.tracks.values()).filter(function (t) { return t.mid != null; });
       log('SCAN_OK:' + dev.length + ':' + dev.map(function (t) { return t.title; }).join('|'));
       var ids = dev.sort(function (a, b) { return a.title.localeCompare(b.title); }).map(function (t) { return t.id; });
       step = 'PLAY'; P().playList(ids, 0, 'Test');
