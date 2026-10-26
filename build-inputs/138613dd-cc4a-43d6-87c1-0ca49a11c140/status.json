@@ -1,9 +1,17 @@
 {
   "buildId": "138613dd-cc4a-43d6-87c1-0ca49a11c140",
-  "status": "running",
-  "message": "Verifying generated APK and AAB",
-  "progress": 92,
+  "status": "success",
   "runId": 40314064601,
   "runUrl": "https://github.com/castelnoleal/instApped/actions/runs/40314064601",
-  "updatedAt": "2026-10-26T11:22:15Z"
+  "artifactId": 12646151615,
+  "artifactUrl": "https://github.com/castelnoleal/instApped/actions/runs/40314064601/artifacts/12646151615",
+  "buildApkUrl": "https://castel-app-factory-api.nolealtohka.workers.dev/download/138613dd-cc4a-43d6-87c1-0ca49a11c140/apk",
+  "buildAabUrl": "https://castel-app-factory-api.nolealtohka.workers.dev/download/138613dd-cc4a-43d6-87c1-0ca49a11c140/aab",
+  "testBuild": false,
+  "signing": false,
+  "testApkUrl": null,
+  "testAabUrl": null,
+  "apk": "inVibe.apk",
+  "aab": "inVibe.aab",
+  "updatedAt": "2026-10-26T11:22:21Z"
 }
