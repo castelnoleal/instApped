@@ -212,6 +212,26 @@ def media_case():
         env["BUILD_OUTPUT"] = str(off)
         subprocess.run(["python3", str(GENERATOR)], cwd=ROOT, env=env, check=True)
         assert "MEDIA_PLAYER = false;" in next((off / "app" / "src" / "main" / "java").rglob("MainActivity.java")).read_text(encoding="utf-8")
+        # Website apps get it from the factory's Music player switch.
+        manifest.write_text(json.dumps({
+            "appName": "Web Music", "packageName": "com.castel.webmusic", "versionName": "1.0.0", "versionCode": 1,
+            "sourceType": "HTTPS website", "sourceMode": "website", "sourceUrl": "https://music.example.com/", "mediaPlayer": True,
+        }), encoding="utf-8")
+        web = tmp / "web"
+        env.update(BUILD_OUTPUT=str(web), SOURCE_FILE="")
+        subprocess.run(["python3", str(GENERATOR)], cwd=ROOT, env=env, check=True)
+        assert "MEDIA_PLAYER = true;" in next((web / "app" / "src" / "main" / "java").rglob("MainActivity.java")).read_text(encoding="utf-8")
+        assert list((web / "app" / "src").rglob("MediaPlaybackService.java"))
+        assert "FOREGROUND_SERVICE_MEDIA_PLAYBACK" in (web / "app" / "src" / "main" / "AndroidManifest.xml").read_text(encoding="utf-8")
+        # Website apps without the switch stay as they were.
+        manifest.write_text(json.dumps({
+            "appName": "Web Plain", "packageName": "com.castel.webplain", "versionName": "1.0.0", "versionCode": 1,
+            "sourceType": "HTTPS website", "sourceMode": "website", "sourceUrl": "https://music.example.com/",
+        }), encoding="utf-8")
+        plain = tmp / "plain"
+        env.update(BUILD_OUTPUT=str(plain))
+        subprocess.run(["python3", str(GENERATOR)], cwd=ROOT, env=env, check=True)
+        assert "MEDIA_PLAYER = false;" in next((plain / "app" / "src" / "main" / "java").rglob("MainActivity.java")).read_text(encoding="utf-8")
         if os.environ.get("MEDIA_BUILD", "1") != "0":
             subprocess.run(["gradle", "-p", str(output), "lintDebug", "assembleDebug", "--no-daemon", "--stacktrace"], cwd=ROOT, check=True)
             apk = output / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk"
