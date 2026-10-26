@@ -13,8 +13,6 @@ import android.content.IntentFilter;
 import android.content.pm.ServiceInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.AudioAttributes;
-import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
@@ -66,9 +64,7 @@ public class MediaPlaybackService extends Service {
     private final ExecutorService artLoader = Executors.newSingleThreadExecutor();
     private MediaSessionCompat session;
     private NotificationManager nm;
-    private AudioManager audio;
-    private AudioFocusRequest focusRequest;
-    private boolean hasFocus, resumeOnFocus, noisyRegistered, foreground, ducked;
+    private boolean noisyRegistered, foreground;
     private Bitmap artBitmap;
     private String artKey = "";
 
@@ -97,7 +93,6 @@ public class MediaPlaybackService extends Service {
         super.onCreate();
         instance = this;
         nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         if (Build.VERSION.SDK_INT >= 26 && nm != null && nm.getNotificationChannel(CHANNEL) == null) {
             NotificationChannel ch = new NotificationChannel(CHANNEL, "Now playing", NotificationManager.IMPORTANCE_LOW);
             ch.setDescription("Music controls");
@@ -158,7 +153,6 @@ public class MediaPlaybackService extends Service {
 
     @Override public void onDestroy() {
         if (instance == this) instance = null;
-        releaseFocus();
         unregisterNoisy();
         if (session != null) { session.setActive(false); session.release(); session = null; }
         artLoader.shutdownNow();
@@ -195,12 +189,13 @@ public class MediaPlaybackService extends Service {
         session.setActive(true);
         Notification n = build(s);
         if (s.playing()) {
-            requestFocus();
+            // Audio focus is left to the WebView: it already requests it for the playing
+            // song and pauses for calls. Requesting it here too makes the two fight and
+            // Android pauses the song.
             registerNoisy();
             enterForeground(n);
         } else {
             unregisterNoisy();
-            if (!resumeOnFocus) releaseFocus();
             if (foreground) {
                 if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_DETACH); else stopForeground(false);
                 foreground = false;
@@ -283,9 +278,7 @@ public class MediaPlaybackService extends Service {
     }
 
     private void stopEverything() {
-        releaseFocus();
         unregisterNoisy();
-        resumeOnFocus = false;
         if (session != null) session.setActive(false);
         if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE); else stopForeground(true);
         foreground = false;
@@ -302,49 +295,7 @@ public class MediaPlaybackService extends Service {
         if (b != null) b.dispatch(action, value);
     }
 
-    // ---------------------------------------------------------------- Audio focus & headphones
-
-    private final AudioManager.OnAudioFocusChangeListener focusListener = change -> main.post(() -> {
-        switch (change) {
-            case AudioManager.AUDIOFOCUS_LOSS:
-                resumeOnFocus = false; hasFocus = false; send("pause", 0); break;
-            case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
-                State s = latest; resumeOnFocus = s != null && s.playing(); send("pause", 0); break;
-            case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
-                ducked = true; send("duck", 0); break;
-            case AudioManager.AUDIOFOCUS_GAIN:
-                hasFocus = true;
-                if (ducked) { ducked = false; send("unduck", 0); }
-                if (resumeOnFocus) { resumeOnFocus = false; send("play", 0); }
-                break;
-            default: break;
-        }
-    });
-
-    private void requestFocus() {
-        if (hasFocus || audio == null) return;
-        int r;
-        if (Build.VERSION.SDK_INT >= 26) {
-            if (focusRequest == null) {
-                focusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                        .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-                        .setWillPauseWhenDucked(false)
-                        .setOnAudioFocusChangeListener(focusListener, main)
-                        .build();
-            }
-            r = audio.requestAudioFocus(focusRequest);
-        } else {
-            r = audio.requestAudioFocus(focusListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
-        }
-        hasFocus = r == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
-    }
-
-    private void releaseFocus() {
-        if (!hasFocus || audio == null) return;
-        if (Build.VERSION.SDK_INT >= 26 && focusRequest != null) audio.abandonAudioFocusRequest(focusRequest);
-        else audio.abandonAudioFocus(focusListener);
-        hasFocus = false;
-    }
+    // ---------------------------------------------------------------- Headphones
 
     private final BroadcastReceiver noisy = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {

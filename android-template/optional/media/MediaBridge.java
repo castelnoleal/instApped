@@ -53,10 +53,10 @@ import java.util.regex.Pattern;
  *   update(json)           -> sync the notification / lock screen / headset controls:
  *                             {state:"playing"|"paused"|"none", title, artist, album, duration(ms), position(ms),
  *                              rate, mediaId (device track id, for artwork), art (small data: URL), hasPrev, hasNext}
- *   stop()                 -> remove the notification and release audio focus
+ *   stop()                 -> remove the notification
  *
  * Controls pressed in the notification, on the lock screen or on a headset call
- * window.CastelMediaEvents(action, value) with action play|pause|toggle|next|prev|seek|stop|duck|unduck.
+ * window.CastelMediaEvents(action, value) with action play|pause|toggle|next|prev|seek|stop.
  * While music plays, the page keeps running when the app is in the background.
  */
 public class MediaBridge implements MainActivity.MediaHooks {
@@ -152,7 +152,7 @@ public class MediaBridge implements MainActivity.MediaHooks {
 
     // ---------------------------------------------------------------- Native → page
 
-    /** Called by the media service (notification, lock screen, headset, audio focus). */
+    /** Called by the media service (notification, lock screen, headset buttons). */
     void dispatch(String action, long value) {
         String js = "window.CastelMediaEvents&&window.CastelMediaEvents(" + JSONObject.quote(action) + "," + value + ")";
         activity.runOnUiThread(() -> activity.runMediaScript(js));
