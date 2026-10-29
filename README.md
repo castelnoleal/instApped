@@ -1,5 +1,9 @@
 # instApped
 
+> **© 2026 instApped. All rights reserved. Not open source.**
+> This repository is public to read, not to reuse. Copying, forking for reuse, running your own copy, or redistributing any part of instApped needs written permission first: **instapped@gmail.com** (subject "instApped permission request"). Apps you build with instApped are yours to publish.
+> Full terms: [LICENSE.md](LICENSE.md) · https://instapped.com/license.html
+
 Commercial-grade HTML/website → Android app builder, branded instApped.
 
 ## Goals
