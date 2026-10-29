@@ -1,3 +1,8 @@
+/*
+ * instApped Android runtime — © 2026 instApped. All rights reserved.
+ * Licensed only for use inside apps built by instApped (https://instapped.com/license.html).
+ * Reuse outside such apps needs written permission: instapped@gmail.com
+ */
 package com.castel.generatedapp;
 
 import android.Manifest;
