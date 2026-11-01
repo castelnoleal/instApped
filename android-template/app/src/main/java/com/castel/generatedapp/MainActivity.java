@@ -1473,7 +1473,7 @@ public class MainActivity extends ComponentActivity {
                 // <input capture>: go straight to the camera, like mobile Chrome.
                 intent = cameraIntents.get(0);
             } else {
-                intent = Intent.createChooser(params.createIntent(), null);
+                intent = Intent.createChooser(pickerIntent(params), null);
                 if (!cameraIntents.isEmpty()) intent.putExtra(Intent.EXTRA_INITIAL_INTENTS, cameraIntents.toArray(new Intent[0]));
             }
             startActivityForResult(intent, 1001);
@@ -1482,6 +1482,31 @@ public class MainActivity extends ComponentActivity {
             fileChooserCallback = null;
             Toast.makeText(this, "No app is available to choose a file.", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    /**
+     * The picker for <input type=file>. accept="" lists like ".ydk" or ".cdb" have no Android MIME type, and WebView
+     * turns them into a filter that hides those files (or every file). When any accepted extension has no known
+     * type, show all files instead, as mobile Chrome does; the page still checks what was picked.
+     */
+    private static Intent pickerIntent(WebChromeClient.FileChooserParams params) {
+        Intent intent = params.createIntent();
+        String[] accept = params.getAcceptTypes();
+        boolean unknown = false;
+        if (accept != null) {
+            for (String raw : accept) {
+                if (raw == null) continue;
+                for (String t : raw.split(",")) {
+                    t = t.trim().toLowerCase(Locale.ROOT);
+                    if (t.startsWith(".") && android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(t.substring(1)) == null) unknown = true;
+                }
+            }
+        }
+        if (unknown) {
+            intent.setType("*/*");
+            intent.removeExtra(Intent.EXTRA_MIME_TYPES);
+        }
+        return intent;
     }
 
     private Uri newCaptureUri(String extension) {
