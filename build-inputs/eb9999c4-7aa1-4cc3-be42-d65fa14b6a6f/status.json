@@ -1,9 +1,17 @@
 {
   "buildId": "eb9999c4-7aa1-4cc3-be42-d65fa14b6a6f",
-  "status": "running",
-  "message": "Verifying generated APK and AAB",
-  "progress": 92,
+  "status": "success",
   "runId": 41494277829,
   "runUrl": "https://github.com/castelnoleal/instApped/actions/runs/41494277829",
-  "updatedAt": "2026-11-02T17:50:05Z"
+  "artifactId": 13164984487,
+  "artifactUrl": "https://github.com/castelnoleal/instApped/actions/runs/41494277829/artifacts/13164984487",
+  "buildApkUrl": "https://castel-app-factory-api.nolealtohka.workers.dev/download/eb9999c4-7aa1-4cc3-be42-d65fa14b6a6f/apk",
+  "buildAabUrl": "https://castel-app-factory-api.nolealtohka.workers.dev/download/eb9999c4-7aa1-4cc3-be42-d65fa14b6a6f/aab",
+  "testBuild": false,
+  "signing": false,
+  "testApkUrl": null,
+  "testAabUrl": null,
+  "apk": "Synapse Calculator.apk",
+  "aab": "Synapse Calculator.aab",
+  "updatedAt": "2026-11-02T17:50:13Z"
 }
