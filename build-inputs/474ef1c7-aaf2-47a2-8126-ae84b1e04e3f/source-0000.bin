@@ -1,0 +1,3332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#060910">
+<title>Duel Synapse — MEIOCG</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   DUEL SYNAPSE — one stylesheet, written once.
+   Two duelists (blue / red) on a dark arena, a gold-ringed clock between them.
+   JS-controlled variables: --button-scale, --button-banner-scale, --glass,
+   --button-glass, --shade, --wallpaper, --theme-rgb, --theme-bright.
+   ========================================================================== */
+:root{
+  --wallpaper:
+    radial-gradient(900px 520px at 12% -5%,rgba(104,148,240,.16),transparent 62%),
+    radial-gradient(900px 520px at 92% 105%,rgba(214,108,148,.15),transparent 62%),
+    linear-gradient(165deg,#10162a,#0b0e16);
+  --glass:.13;
+  --button-glass:.05;
+  --button-scale:1;
+  --button-banner-scale:1;
+  --shade:.035;
+  --theme-rgb:210,169,78;
+  --theme-bright:245,224,168;
+  --base-rgb:11,14,22;
+  --auto-dim:0;
+  --auto-panel:0;
+  --text:#e7e9ef;
+  --muted:#9097a8;
+  --line:#252b3a;
+  --gold:#d2a94e;
+  --good:#4cc2a0;
+  --danger:#e06070;
+  --p1-rgb:104,148,240;
+  --p2-rgb:214,108,148;
+  --num:"Chakra Petch","Rajdhani","Arial Narrow",system-ui,sans-serif;
+  --ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#060910;color:var(--text);font-family:var(--ui)}
+body{
+  background-image:linear-gradient(rgba(0,0,0,calc(var(--shade) + var(--auto-dim))),rgba(0,0,0,calc(var(--shade) + var(--auto-dim)))),var(--wallpaper);
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.7;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 66 0 50V16L28 0l28 16v34zM28 66v34M0 50v34l28 16 28-16V50' fill='none' stroke='%23ffffff' stroke-opacity='.045'/%3E%3C/svg%3E");
+}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+svg .f{fill:currentColor;stroke:none}
+.hidden{display:none!important}
+
+/* Forced rotation fallback (Fixed Portrait / Fixed Landscape without a native lock). */
+html.force-landscape body{position:fixed;top:0;left:0;width:100vh;height:100vw;transform-origin:top left;transform:rotate(90deg) translateY(-100%)}
+html.force-portrait body{position:fixed;top:0;left:0;width:100vh;height:100vw;transform-origin:top left;transform:rotate(-90deg) translateX(-100%)}
+
+/* ---------- layout shell ---------- */
+.app{
+  position:relative;z-index:1;height:100%;width:100%;display:flex;flex-direction:column;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* ---------- top bar ---------- */
+.topbar{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:8px 14px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(var(--base-rgb),.78),rgba(var(--base-rgb),.45));
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+.brand{display:flex;align-items:center;gap:9px;white-space:nowrap;min-width:0}
+.brand-title{font:700 clamp(20px,3vw,26px)/1 var(--num);letter-spacing:.02em}
+.brand-meiocg{font:800 10px/1 var(--ui);letter-spacing:.1em;padding:4px 7px;border-radius:6px;color:var(--gold);border:1px solid rgba(255,194,77,.45);background:rgba(255,194,77,.08)}
+.toolbar{display:flex;align-items:center;gap:5px}
+.toolbar-divider{width:1px;align-self:stretch;margin:6px 3px;background:var(--line)}
+.icon-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  width:calc(54px * var(--button-banner-scale));height:calc(48px * var(--button-banner-scale));
+  padding:0;border:1px solid transparent;border-radius:12px;color:var(--text);
+  background:rgba(255,255,255,calc(var(--button-glass) * .6));
+  transition:background .15s,border-color .15s,transform .08s;
+}
+.icon-btn .lbl{font:700 calc(9.5px * var(--button-banner-scale))/1 var(--ui);color:var(--muted);white-space:nowrap}
+.icon-btn:hover{background:rgba(255,255,255,.1);border-color:var(--line)}
+.icon-btn:active{transform:scale(.93)}
+.icon-btn:disabled{opacity:.3;cursor:default;transform:none}
+.icon-btn[aria-pressed="false"] svg{opacity:.45}
+#resetBtn{color:var(--gold)}
+#resetBtn .lbl{color:rgba(255,194,77,.8)}
+
+/* ---------- arena grid ---------- */
+.duel{
+  flex:1;min-height:0;display:grid;gap:12px;padding:12px 14px 14px;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  grid-template-areas:"p1 core p2";
+}
+#p1{grid-area:p1}#p2{grid-area:p2}.timer-zone{grid-area:core}
+html.is-portrait .duel{
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:minmax(0,1fr) auto minmax(0,1fr);
+  grid-template-areas:"p1" "core" "p2";
+}
+
+/* ---------- player panels ---------- */
+#p1{--id:var(--p1-rgb)}#p2{--id:var(--p2-rgb)}
+.player{
+  position:relative;min-width:0;min-height:0;overflow:auto;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:8px;
+  padding:42px 16px 14px;border-radius:22px;
+  background:
+    linear-gradient(165deg,rgba(var(--id),.20),rgba(var(--id),.04) 55%),
+    rgba(var(--base-rgb),calc(.42 + var(--glass) * 1.6));
+  border:1px solid rgba(var(--id),.30);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 18px 44px rgba(0,0,0,.38);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  transition:border-color .25s,box-shadow .25s;
+  scrollbar-width:none;
+}
+.player::-webkit-scrollbar{display:none}
+.player > *{flex-shrink:0}
+.player > .pname{margin-top:auto}
+.player > .edge-turn{margin-bottom:auto}
+.player::after{ /* targeting-reticle corners */
+  content:"";position:absolute;inset:8px;pointer-events:none;opacity:.55;border-radius:16px;
+  --c:rgb(var(--id));
+  background:
+    linear-gradient(var(--c),var(--c)) 0 0/18px 2px,linear-gradient(var(--c),var(--c)) 0 0/2px 18px,
+    linear-gradient(var(--c),var(--c)) 100% 0/18px 2px,linear-gradient(var(--c),var(--c)) 100% 0/2px 18px,
+    linear-gradient(var(--c),var(--c)) 0 100%/18px 2px,linear-gradient(var(--c),var(--c)) 0 100%/2px 18px,
+    linear-gradient(var(--c),var(--c)) 100% 100%/18px 2px,linear-gradient(var(--c),var(--c)) 100% 100%/2px 18px;
+  background-repeat:no-repeat;
+}
+.player.current{
+  border-color:rgba(var(--id),.9);
+  box-shadow:inset 0 0 40px rgba(var(--id),.12),0 0 0 1px rgba(var(--id),.5),0 0 34px rgba(var(--id),.38),0 18px 44px rgba(0,0,0,.4);
+}
+.player.current::after{opacity:1}
+.player-id-group{position:absolute;top:12px;left:14px;display:flex;align-items:center;gap:7px;z-index:2}
+.player-badge{
+  min-width:calc(34px * var(--button-banner-scale));height:calc(26px * var(--button-banner-scale));padding:0 9px;border-radius:8px;
+  font:800 12px/1 var(--ui);color:#fff;background:rgba(var(--id),.28);border:1px solid rgba(var(--id),.6);
+}
+.player-score{
+  display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 10px;border-radius:999px;
+  background:rgba(0,0,0,.35);border:1px solid rgba(255,194,77,.4);color:var(--gold);font:800 13px/1 var(--num);
+}
+.score-diamond{font-size:9px}
+.current-mark{
+  position:absolute;top:14px;right:16px;z-index:2;padding:5px 10px;border-radius:999px;
+  font:800 11px/1 var(--ui);color:#06101f;background:rgb(var(--id));box-shadow:0 0 16px rgba(var(--id),.6);
+}
+.pname{padding-bottom:3px;font:800 clamp(15px,2.2vw,20px)/1.3 var(--ui);color:var(--text);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lp{
+  font:700 clamp(60px,min(12vw,24vh),150px)/.92 var(--num);font-variant-numeric:tabular-nums;letter-spacing:.01em;
+  cursor:pointer;user-select:none;text-shadow:0 0 28px rgba(var(--id),.45),0 4px 12px rgba(0,0,0,.6);
+  transition:transform .12s,filter .12s;
+}
+html.is-portrait .lp{font-size:clamp(56px,min(24vw,12.5vh),140px)}
+html.is-portrait .hint{display:none}
+html.is-portrait .player{gap:6px;padding:40px 14px 14px}
+html.is-portrait .lp{font-size:clamp(52px,min(23vw,11vh),130px)}
+.lp.counting{transform:scale(1.04);filter:brightness(1.2)}
+.lp.low{color:#ff8a98;text-shadow:0 0 28px rgba(255,84,104,.55),0 4px 12px rgba(0,0,0,.6)}
+.lpbar{width:min(100%,360px);height:6px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}
+.lpbar i{display:block;height:100%;width:100%;border-radius:6px;background:linear-gradient(90deg,rgba(var(--id),.7),rgb(var(--id)));transition:width .4s ease,background .3s}
+.lp.low + .lpbar i{background:linear-gradient(90deg,#ff5468,#ff9a6b)}
+.hint{font-size:11px;color:var(--muted)}
+@media (max-height:520px){.hint{display:none}}
+
+.quick{
+  width:100%;max-width:440px;display:grid;gap:6px;
+  grid-template-columns:repeat(auto-fit,minmax(calc(46px * var(--button-scale)),1fr));
+}
+.quick button{
+  height:min(calc(42px * var(--button-scale)),26vh);padding:0 4px;border-radius:11px;
+  font:800 calc(14px * min(var(--button-scale),1.8))/1 var(--ui);color:#ffd9de;
+  background:rgba(255,84,104,.12);border:1px solid rgba(255,84,104,.38);
+  transition:transform .08s,background .15s;
+}
+.quick button[data-d]:not([data-d^="-"]){color:#c9f7e3;background:rgba(52,211,153,.13);border-color:rgba(52,211,153,.42)}
+.quick button:active{transform:scale(.92);background:rgba(255,255,255,.2)}
+.edge-turn{
+  width:100%;max-width:440px;height:calc(42px * var(--button-scale));border-radius:11px;
+  font:800 calc(14px * min(var(--button-scale),1.8))/1 var(--ui);color:var(--muted);
+  background:rgba(255,255,255,calc(var(--button-glass) * .8));border:1px solid var(--line);
+  transition:background .2s,color .2s,box-shadow .2s,transform .08s;
+}
+.edge-turn:active{transform:scale(.97)}
+.edge-turn:disabled{opacity:.4;cursor:default}
+.edge-turn.active{color:#06101f;background:rgb(var(--id));border-color:rgb(var(--id));box-shadow:0 0 22px rgba(var(--id),.55)}
+
+/* ---------- centre core: turn + clock + start ---------- */
+.timer-zone{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-width:0;padding:0 2px;
+}
+html.is-portrait .timer-zone{flex-direction:row;flex-wrap:wrap;gap:10px 14px;padding:2px 0}
+.turn-tracker{
+  display:flex;flex-direction:column;align-items:center;gap:2px;max-width:220px;padding:7px 14px;border-radius:14px;
+  text-align:center;font:700 12px/1.25 var(--ui);background:rgba(255,255,255,.06);border:1px solid var(--line);
+}
+html.is-portrait .turn-tracker{flex:1 1 100%;max-width:none;flex-direction:row;justify-content:center;gap:8px;order:-1}
+.turn-tracker #turnContext{display:flex;flex-direction:column;align-items:center;gap:2px}
+html.is-portrait .turn-tracker #turnContext{flex-direction:row;gap:8px}
+.turn-main{color:var(--text)}
+.turn-starter{color:var(--gold)}
+.timer{
+  position:relative;min-width:178px;padding:12px 20px 14px;border-radius:22px;text-align:center;
+  background:rgba(var(--base-rgb),.78);border:1px solid rgba(var(--theme-rgb),.5);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),0 0 30px rgba(var(--theme-rgb),.22);
+}
+.phase{font:700 10px/1.2 var(--ui);letter-spacing:.06em;color:var(--muted)}
+.clock{font:700 clamp(46px,min(9vw,13vh),72px)/1 var(--num);font-variant-numeric:tabular-nums;margin-top:4px;text-shadow:0 0 22px rgba(var(--theme-rgb),.4)}
+.clock.warning{color:var(--gold)}
+.clock.danger{color:#ff7a88;animation:pulse .8s infinite}
+.timebar{height:4px;margin-top:8px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden}
+.timebar i{display:block;height:100%;width:100%;border-radius:4px;background:linear-gradient(90deg,rgb(var(--theme-rgb)),rgb(var(--theme-bright)));transition:width 1s linear}
+.timer-btn{
+  width:calc(62px * var(--button-scale));height:calc(62px * var(--button-scale));border-radius:50%;
+  font:800 calc(22px * min(var(--button-scale),1.8))/1 var(--ui);color:#1a1204;
+  background:linear-gradient(145deg,rgb(var(--theme-bright)),rgb(var(--theme-rgb)));border:0;
+  box-shadow:0 0 0 4px rgba(var(--theme-rgb),.18),0 8px 22px rgba(var(--theme-rgb),.4);
+  transition:transform .08s,box-shadow .15s;
+}
+.timer-btn:hover{box-shadow:0 0 0 6px rgba(var(--theme-rgb),.22),0 8px 26px rgba(var(--theme-rgb),.55)}
+.timer-btn:active{transform:scale(.93)}
+@keyframes pulse{50%{opacity:.5}}
+
+/* Last 3 turns: the whole arena turns alarm-orange. */
+html.last-three .timer{border-color:rgba(255,92,60,.8);box-shadow:0 0 38px rgba(255,92,60,.4)}
+html.last-three .clock{color:#ffb08a;text-shadow:0 0 22px rgba(255,92,60,.6)}
+html.last-three .timebar i{background:linear-gradient(90deg,#ff5c3c,#ffb347);animation:pulse 1.4s infinite}
+html.last-three .phase{color:#ffb08a}
+
+/* ---------- dialogs ---------- */
+.modal{
+  position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+  padding:12px;background:rgba(3,5,12,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.sheet,.modal-card{
+  position:relative;width:min(520px,100%);max-height:calc(100dvh - 24px);overflow:auto;
+  padding:20px;border-radius:22px;border:1px solid var(--line);
+  background:linear-gradient(180deg,#171f40,#0e1328);box-shadow:0 30px 80px rgba(0,0,0,.65);
+}
+.sheet h2,.modal-card h2{margin:0 0 4px;font:700 26px/1.1 var(--num);letter-spacing:.01em}
+.sheet p{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.45}
+.modal-head{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-right:48px;margin-bottom:12px}
+.modal-head h2{margin:0}
+.modal-head p{margin:2px 0 0}
+.modal-close{
+  position:absolute;top:0;right:0;width:40px;height:40px;border-radius:12px;font-size:24px;line-height:1;
+  background:rgba(255,255,255,.07);border:1px solid var(--line);color:var(--text);
+}
+.sheet > .modal-close,.modal-card > .modal-close{top:14px;right:14px}
+.modal-close:hover{background:rgba(255,255,255,.14)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:16px}
+.action-btn{
+  min-height:calc(44px * var(--button-scale));padding:0 calc(18px * min(var(--button-scale),1.6));border-radius:12px;
+  font:800 calc(14px * min(var(--button-scale),1.6))/1 var(--ui);color:var(--text);
+  background:rgba(255,255,255,.08);border:1px solid var(--line);transition:transform .08s,background .15s;
+}
+.action-btn:hover{background:rgba(255,255,255,.14)}
+.action-btn:active{transform:scale(.95)}
+.action-btn:disabled{opacity:.4;cursor:default}
+.action-btn.small{min-height:36px;padding:0 12px;font-size:12px}
+.action-btn.primary{color:#1a1204;border:0;background:linear-gradient(145deg,rgb(var(--theme-bright)),rgb(var(--theme-rgb)));box-shadow:0 6px 18px rgba(var(--theme-rgb),.3)}
+.action-btn.selected{outline:2px solid rgb(var(--theme-rgb));outline-offset:1px;background:rgba(var(--theme-rgb),.22)}
+.danger-action{color:#ffb3bc;border-color:rgba(255,84,104,.55);background:rgba(255,84,104,.1)}
+.match-notice{width:min(460px,100%)}
+.match-notice-kicker{font:800 11px/1 var(--ui);letter-spacing:.14em;color:var(--gold);margin-bottom:8px}
+.next-duel-choice-group{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.next-duel-choice-group > span{flex:1 0 100%;font:700 12px/1 var(--ui);color:var(--muted)}
+.next-duel-choice-group .action-btn{flex:1}
+
+/* LP calculator */
+.lp-entry{margin:8px 0 10px;padding:10px 14px;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid var(--line);text-align:center}
+.lp-entry-label{font:700 11px/1 var(--ui);color:var(--muted);margin-bottom:4px}
+.lp-entry-display{min-height:46px;display:flex;align-items:center;justify-content:center;font:700 calc(40px * min(var(--button-scale),1.5))/1 var(--num);letter-spacing:.03em;overflow:hidden;word-break:break-all}
+.lp-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:10px}
+.lp-presets button{
+  height:calc(34px * var(--button-scale));border-radius:10px;font:800 calc(12px * min(var(--button-scale),1.6))/1 var(--ui);
+  background:rgba(var(--theme-rgb),.12);border:1px solid rgba(var(--theme-rgb),.35);white-space:nowrap;
+}
+.lp-presets button:active{transform:scale(.94);background:rgba(var(--theme-rgb),.3)}
+.lp-keypad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.lp-keypad button{
+  height:calc(clamp(48px,8vh,66px) * var(--button-scale));border-radius:14px;
+  font:700 calc(28px * min(var(--button-scale),2))/1 var(--num);
+  background:rgba(255,255,255,.08);border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+  transition:transform .08s,background .12s;
+}
+.lp-keypad button:active{transform:scale(.93);background:rgba(255,255,255,.2)}
+.lp-keypad button[data-key="divide"],.lp-keypad button[data-key="back"]{color:var(--gold)}
+.lp-calc-actions{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:0;justify-content:stretch}
+.lp-calc-actions .action-btn{padding:0 4px;min-width:0}
+.lp-calc-actions #lp00,.lp-calc-actions #lpClear,.lp-calc-actions #lpBack{grid-column:span 2}
+.lp-calc-actions #lpDamage,.lp-calc-actions #lpHeal{grid-column:span 3;min-height:calc(54px * var(--button-scale))}
+.damage-btn{color:#fff;border:0;background:linear-gradient(145deg,#ff7a88,#ff3d57);box-shadow:0 6px 18px rgba(255,61,87,.3)}
+.heal-btn{color:#04180f;background:linear-gradient(145deg,#6ee7b7,#34d399)!important;box-shadow:0 6px 18px rgba(52,211,153,.3)!important}
+#lpModal .sheet{width:min(440px,100%)}
+html.is-landscape #lpModal .sheet{
+  width:min(780px,98vw);display:grid;gap:0 18px;padding:16px 18px;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+  grid-template-areas:"head keypad" "entry keypad" "presets keypad" "actions keypad";
+  align-content:start;
+}
+html.is-landscape #lpModal h2{grid-area:head;margin:0}
+html.is-landscape #lpModal #lpWho{display:none}
+html.is-landscape #lpModal .lp-entry{grid-area:entry;margin:6px 0}
+html.is-landscape #lpModal .lp-presets{grid-area:presets;margin:0 0 6px}
+html.is-landscape #lpModal .lp-keypad{grid-area:keypad;margin:0;align-content:stretch}
+html.is-landscape #lpModal .lp-keypad button{height:calc(clamp(44px,12vh,62px) * var(--button-scale))}
+html.is-landscape #lpModal .lp-calc-actions{grid-area:actions}
+html.is-landscape #lpModal .lp-modal-close{grid-area:head;position:static;justify-self:end;align-self:start}
+
+/* Dice & coin */
+.random-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.random-result{min-height:150px;display:grid;place-items:center;margin-top:14px;border-radius:16px;background:rgba(0,0,0,.28);border:1px dashed var(--line)}
+.random-stage{display:grid;place-items:center;color:var(--muted);font-weight:700}
+.random-final{display:grid;justify-items:center;gap:10px}
+.result-label{font:800 15px/1 var(--ui)}
+.random-die,.random-coin{display:grid;place-items:center;font:700 52px/1 var(--num);color:#10152a}
+.random-die{width:92px;height:92px;border-radius:20px;background:linear-gradient(145deg,#fff,#c9d4f5);box-shadow:0 10px 24px rgba(0,0,0,.45)}
+.random-coin{width:92px;height:92px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff1b8,#ffc24d 55%,#c58a14);box-shadow:0 10px 24px rgba(0,0,0,.45),inset 0 0 0 4px rgba(255,255,255,.25)}
+.random-stage.dice-roll{animation:diceThrow 1.1s cubic-bezier(.2,.7,.2,1)}
+.random-stage.coin-flip{animation:coinThrow 1.1s cubic-bezier(.2,.7,.2,1)}
+@keyframes diceThrow{0%{transform:translateY(-30px) rotate(0)}40%{transform:translateY(8px) rotate(380deg)}70%{transform:translateY(-6px) rotate(620deg)}100%{transform:none}}
+@keyframes coinThrow{0%{transform:translateY(0) rotateX(0)}45%{transform:translateY(-34px) rotateX(900deg)}100%{transform:translateY(0) rotateX(1800deg)}}
+
+/* LP log */
+.lp-logs-card{width:min(560px,100%)}
+.lp-logs-subtitle{font-size:12px;color:var(--muted);margin-top:3px}
+.lp-logs-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.lp-logs-summary > div{padding:10px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid var(--line);text-align:center}
+.lp-logs-summary > div:first-child{border-color:rgba(var(--p1-rgb),.5)}
+.lp-logs-summary > div:last-child{border-color:rgba(var(--p2-rgb),.5)}
+.lp-logs-summary span{display:block;font-size:12px;color:var(--muted)}
+.lp-logs-summary strong{font:700 28px/1.1 var(--num)}
+.lp-logs-list{max-height:min(46vh,380px);overflow:auto}
+.lp-log-empty,.history-empty{padding:28px 10px;text-align:center;color:var(--muted);font-size:13px}
+.duel-log-header{display:flex;justify-content:space-between;gap:8px;margin:12px 0 6px;padding-bottom:6px;border-bottom:1px solid var(--line);font-size:12px}
+.duel-log-header strong{font-size:13px}
+.duel-log-header span{color:var(--muted);text-align:right}
+.duel-log-header.current-duel strong{color:var(--gold)}
+.lp-log{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;margin-bottom:6px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
+.lp-log-turn{text-align:center;font-size:10px;color:var(--muted)}
+.lp-log-turn strong{display:block;font:700 18px/1 var(--num);color:var(--text)}
+.lp-log-change{font-weight:800;font-size:14px}
+.lp-log.gain .lp-log-change{color:var(--good)}
+.lp-log.loss .lp-log-change{color:#ff8a98}
+.lp-log.division .lp-log-change{color:var(--gold)}
+.lp-log-detail,.lp-log-time{font-size:11px;color:var(--muted)}
+.lp-log-main{min-width:0}
+.lp-log-detail{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* History */
+.history-sheet,.history-detail-sheet{width:min(620px,100%)}
+.history-list{max-height:min(62vh,520px);overflow:auto}
+.history-card{display:flex;justify-content:space-between;gap:12px;padding:13px;margin-bottom:10px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid var(--line)}
+.history-main{min-width:0;display:grid;gap:3px}
+.history-match{font-weight:800;font-size:14px}
+.history-opponent,.history-victory-type{font-size:12px;color:var(--muted)}
+.history-result{font:800 13px/1.3 var(--ui)}
+.history-result.win{color:var(--good)}.history-result.loss{color:#ff8a98}.history-result.draw{color:var(--gold)}
+.history-actions{display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
+.history-more,.history-delete{height:34px;padding:0 12px;border-radius:10px;font:800 12px/1 var(--ui);background:rgba(255,255,255,.08);border:1px solid var(--line)}
+.history-delete{color:#ffb3bc;border-color:rgba(255,84,104,.4)}
+.history-detail-body{max-height:min(60vh,480px);overflow:auto}
+.detail-duel{padding:12px;margin-bottom:10px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.detail-duel-title{font:700 18px/1.1 var(--num);margin-bottom:4px}
+.detail-meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+.detail-log{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:8px;padding:6px 0;border-top:1px solid rgba(255,255,255,.06);font-size:12px}
+.detail-log-change{font-weight:800}
+.detail-log-time{color:var(--muted);font-size:11px}
+
+/* Settings */
+.section{margin-top:14px;padding:14px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.section h3{margin:0 0 10px;font:800 14px/1 var(--ui);color:var(--gold)}
+.row{display:flex;align-items:center;gap:10px;margin:10px 0}
+.row label{flex:0 0 112px;font-weight:700;font-size:13px}
+.row input:not([type=range]):not([type=file]),.row select{
+  flex:1;min-width:0;height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--line);
+  background:rgba(0,0,0,.3);color:var(--text);font-weight:700;outline:0;
+}
+.row input:focus,.row select:focus{border-color:rgb(var(--theme-rgb))}
+.row input[type=range]{flex:1;min-width:0;accent-color:rgb(var(--theme-rgb))}
+.row-value{flex:0 0 46px;text-align:right;font:800 13px var(--ui);color:var(--gold)}
+.row-hint{margin:0!important;font-size:12px!important}
+.upload{display:block;padding:14px;border-radius:12px;border:1px dashed rgba(150,175,255,.4);text-align:center;color:var(--muted);font-weight:700;font-size:13px}
+.upload input{display:block;width:100%;margin-top:8px;font-size:12px}
+.music-controls{flex:1;min-width:0;display:flex;align-items:center;gap:6px}
+.music-controls input[type=file]{flex:1;min-width:0;font-size:11px}
+.settings-action{flex:0 0 auto;width:calc(36px * var(--button-banner-scale));height:calc(36px * var(--button-banner-scale));border-radius:10px;background:rgba(255,255,255,.08);border:1px solid var(--line);font-size:14px}
+.match-reset-section .action-btn{width:100%}
+
+/* ---------- narrow screens ---------- */
+@media (max-width:640px){
+  .topbar{flex-wrap:wrap;padding:8px 10px;gap:6px}
+  .brand{flex:1 1 100%;justify-content:space-between}
+  .toolbar{flex:1 1 100%;gap:3px}
+  .toolbar-divider{margin:8px 1px}
+  .icon-btn{flex:1 1 0;width:auto;min-width:0}
+  .duel{padding:10px;gap:10px}
+  .player{padding-top:44px}
+  .row label{flex-basis:92px}
+}
+@media (max-width:640px) and (max-height:500px){
+  .topbar{flex-wrap:nowrap}
+  .brand{flex:0 0 auto}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+:focus-visible{outline:2px solid rgb(var(--theme-rgb));outline-offset:2px}
+
+/* ===== SIMPLE LAYER: no top bar, tools live in the centre core; sizes follow each panel ===== */
+.topbar{display:none}
+.duel{padding:10px;gap:10px}
+.player{container-type:size;padding:38px 14px 12px;gap:6px}
+.player::after,.current-mark,.hint{display:none}
+.lp{font-size:clamp(48px,min(30cqw,34cqh),180px)!important}
+.lp{font-size:clamp(48px,min(30cqw,34cqh),180px)}
+.pname{font-size:clamp(14px,min(5cqw,7cqh),20px)}
+.quick,.edge-turn{max-width:none}
+.timer-zone{gap:10px;overflow:auto;scrollbar-width:none;justify-content:center;max-height:100%}
+.timer-zone::-webkit-scrollbar{display:none}
+.brand{justify-content:center;gap:6px;order:-2}
+.brand-title{font-size:14px;color:var(--muted)}
+.brand-meiocg{font-size:9px;padding:3px 5px}
+.toolbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:100%;max-width:196px;flex:none}
+.toolbar-divider{display:none}
+.icon-btn{width:auto;min-width:0;height:calc(40px * var(--button-banner-scale));border:1px solid var(--line);background:rgba(255,255,255,.06)}
+.icon-btn svg{width:19px;height:19px}
+.timer{min-width:0;width:100%;max-width:196px}
+.timer-zone{min-width:200px}
+html.is-portrait .timer-zone{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px 12px;min-width:0}
+html.is-portrait .brand{display:none}
+html.is-portrait .turn-tracker{order:-1;flex:1 1 100%}
+html.is-portrait .timer{width:auto;min-width:170px}
+html.is-portrait .toolbar{grid-template-columns:repeat(8,minmax(0,1fr));max-width:none;flex:1 1 100%}
+html.is-portrait .lp{font-size:clamp(48px,min(30cqw,34cqh),180px)}
+html.is-portrait .player{gap:6px;padding:38px 14px 12px}
+html.is-portrait .duel{grid-template-rows:minmax(0,1fr) auto minmax(0,1fr)}
+@media (max-height:380px){.turn-tracker{display:none}.timer{padding:8px 14px 10px}.clock{font-size:42px}.timer-btn{width:52px;height:52px}}
+
+.clock{font-size:clamp(38px,min(6vw,12vh),56px)}
+html.is-portrait .clock{font-size:clamp(44px,min(12vw,8vh),64px)}
+.lp{padding-bottom:.1em}
+.quick{grid-template-columns:repeat(auto-fit,minmax(calc(36px * var(--button-scale)),1fr))}
+.quick button{font-size:calc(13px * min(var(--button-scale),1.8))}
+.timer{overflow:hidden}
+
+/* ===== MEIOCG SHAPE LAYER: chamfered panels & buttons, hexagon start button, slanted bars =====
+   Each shaped element is clipped to a chamfered polygon; its outline is a ::before ring clipped with an even-odd polygon. */
+:root{
+  --cut:10px;--t:1.5px;
+  --shape:polygon(var(--cut) 0,100% 0,100% calc(100% - var(--cut)),calc(100% - var(--cut)) 100%,0 100%,0 var(--cut));
+  --shape-r:polygon(0 0,calc(100% - var(--cut)) 0,100% var(--cut),100% 100%,var(--cut) 100%,0 calc(100% - var(--cut)));
+  --ring:polygon(evenodd,var(--cut) 0,100% 0,100% calc(100% - var(--cut)),calc(100% - var(--cut)) 100%,0 100%,0 var(--cut),
+    var(--t) calc(var(--cut) + var(--t) * .42),calc(var(--cut) + var(--t) * .42) var(--t),calc(100% - var(--t)) var(--t),calc(100% - var(--t)) calc(100% - var(--cut) - var(--t) * .42),
+    calc(100% - var(--cut) - var(--t) * .42) calc(100% - var(--t)),var(--t) calc(100% - var(--t)),var(--t) calc(var(--cut) + var(--t) * .42));
+  --ring-r:polygon(evenodd,0 0,calc(100% - var(--cut)) 0,100% var(--cut),100% 100%,var(--cut) 100%,0 calc(100% - var(--cut)),
+    var(--t) var(--t),calc(100% - var(--cut) - var(--t) * .42) var(--t),calc(100% - var(--t)) calc(var(--cut) + var(--t) * .42),calc(100% - var(--t)) calc(100% - var(--t)),
+    calc(var(--cut) + var(--t) * .42) calc(100% - var(--t)),var(--t) calc(100% - var(--cut) - var(--t) * .42));
+  --bd:#313a4f;--fill:rgba(255,255,255,.06);
+}
+body::before{
+  background-image:linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
+  background-size:44px 44px;opacity:1;
+  -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 85%);mask-image:radial-gradient(ellipse at center,#000 30%,transparent 85%);
+}
+.player,.timer,.sheet,.modal-card,.icon-btn,.action-btn,.quick button,.edge-turn,.lp-keypad button,.lp-presets button,
+.section,.history-card,.lp-entry,.turn-tracker,.lp-logs-summary>div,.detail-duel,.lp-log,.modal-close,.settings-action,.history-more,.history-delete,.upload,.player-badge,.player-score{
+  position:relative;isolation:isolate;border:0!important;border-radius:0!important;background:var(--fill)!important;box-shadow:none;
+  clip-path:var(--shape);
+}
+.player::before,.timer::before,.sheet::before,.modal-card::before,.icon-btn::before,.action-btn::before,.quick button::before,.edge-turn::before,.lp-keypad button::before,.lp-presets button::before,
+.section::before,.history-card::before,.lp-entry::before,.turn-tracker::before,.lp-logs-summary>div::before,.detail-duel::before,.lp-log::before,.modal-close::before,.settings-action::before,.history-more::before,.history-delete::before,.upload::before,.player-badge::before,.player-score::before{
+  content:"";position:absolute;inset:0;z-index:-1;background:var(--bd);clip-path:var(--ring);pointer-events:none;
+}
+#p2,#p2::before{--shape:var(--shape-r);--ring:var(--ring-r)}
+.player::after{display:none!important}
+.player,.sheet,.modal-card{--cut:24px}
+.sheet,.modal-card{--cut:22px}
+.timer{--cut:18px;overflow:visible!important}
+.section,.history-card,.detail-duel,.lp-entry,.turn-tracker,.lp-logs-summary>div{--cut:12px}
+.lp-log,.upload,.history-more,.history-delete,.modal-close,.settings-action,.icon-btn,.action-btn,.quick button,.edge-turn,.lp-keypad button,.lp-presets button{--cut:8px}
+.player-badge,.player-score{--cut:6px}
+.player{overflow:hidden}
+
+.player{--bd:rgba(var(--id),.55);--fill:linear-gradient(165deg,rgba(var(--id),.20),rgba(var(--id),.03) 55%),rgba(var(--base-rgb),calc(.5 + var(--glass) * 1.6 + var(--auto-panel)))}
+.player.current{--bd:rgb(var(--id));box-shadow:inset 0 0 50px rgba(var(--id),.3)}
+.timer{--bd:rgba(var(--theme-rgb),.7);--fill:rgba(var(--base-rgb),.94);box-shadow:inset 0 0 26px rgba(var(--theme-rgb),.12)}
+html.last-three .timer{--bd:#ff6a4a;box-shadow:inset 0 0 30px rgba(255,92,60,.3)}
+.sheet,.modal-card{--bd:rgba(104,148,240,.5);--fill:linear-gradient(180deg,#171c29,#0f131d)}
+.section,.history-card,.detail-duel,.lp-entry,.turn-tracker,.lp-logs-summary>div,.lp-log,.upload{--bd:#2b3243;--fill:rgba(255,255,255,.035)}
+.lp-logs-summary>div:first-child{--bd:rgba(var(--p1-rgb),.7)}
+.lp-logs-summary>div:last-child{--bd:rgba(var(--p2-rgb),.7)}
+.icon-btn,.action-btn,.lp-keypad button,.lp-presets button,.modal-close,.settings-action,.history-more,.edge-turn{--bd:#313a4f;--fill:#171c29}
+.lp-presets button{--bd:rgba(var(--theme-rgb),.5);--fill:rgba(var(--theme-rgb),.12)}
+.icon-btn:hover,.action-btn:hover,.lp-keypad button:hover,.edge-turn:hover{--bd:rgba(var(--theme-rgb),.8)}
+#resetBtn{--bd:rgba(var(--theme-rgb),.7)}
+.quick button{--bd:rgba(214,108,148,.65);--fill:rgba(214,108,148,.16);color:#f6d3e0}
+.quick button[data-d]:not([data-d^="-"]){--bd:rgba(76,194,160,.7);--fill:rgba(76,194,160,.16);color:#c9f3e6}
+.edge-turn.active{--bd:rgb(var(--id));--fill:rgb(var(--id));color:#0b0e16}
+.action-btn.primary{--bd:rgb(var(--theme-bright));--fill:linear-gradient(145deg,rgb(var(--theme-bright)),rgb(var(--theme-rgb)));color:#0b0e16}
+.action-btn.selected{--bd:rgb(var(--theme-bright));--fill:rgba(var(--theme-rgb),.3);outline:0}
+.damage-btn{--bd:#ff8f9d;--fill:linear-gradient(145deg,#e8798a,#cf4a5e);color:#fff}
+.heal-btn{--bd:#8be8cf;--fill:linear-gradient(145deg,#74dcc0,#3fae92);color:#05211a}
+.danger-action,.history-delete{--bd:rgba(224,96,112,.65);--fill:rgba(224,96,112,.12)}
+.history-delete{color:#f5b3bb}
+.player-badge{--bd:rgba(var(--id),.85);--fill:rgba(var(--id),.3)}
+.player-score{--bd:rgba(210,169,78,.7);--fill:rgba(0,0,0,.5);color:var(--gold)}
+.lp-keypad button[data-key="divide"],.lp-keypad button[data-key="back"]{color:var(--gold)}
+.icon-btn:disabled{opacity:.3}
+
+.timer-btn{
+  border:0!important;border-radius:0!important;clip-path:polygon(25% 4%,75% 4%,100% 50%,75% 96%,25% 96%,0 50%);
+  width:calc(70px * var(--button-scale));height:calc(64px * var(--button-scale));box-shadow:none!important;
+  background:linear-gradient(145deg,rgb(var(--theme-bright)),rgb(var(--theme-rgb)))!important;color:#0b0e16!important;
+}
+.lpbar,.timebar{border-radius:0;clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%);height:7px}
+.lpbar i,.timebar i{border-radius:0}
+.lpbar{background:rgba(255,255,255,.08)}
+.lp{font-weight:600;letter-spacing:0}
+.clock{font-weight:600}
+.pname{font-family:var(--num);font-weight:600;letter-spacing:.04em}
+.brand-title{font-family:var(--num);font-weight:600;letter-spacing:.06em}
+.brand-meiocg{border-radius:0;clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%);border:0;background:rgba(210,169,78,.18);padding:4px 9px}
+.sheet h2,.modal-card h2{font-family:var(--num);font-weight:600;letter-spacing:.02em}
+.section h3{font-family:var(--num);font-weight:600;letter-spacing:.06em}
+.quick button,.edge-turn,.action-btn{font-family:var(--num);font-weight:600;letter-spacing:.03em}
+.quick button,.edge-turn{height:min(calc(42px * var(--button-scale)),13cqh)}
+.row input:not([type=range]):not([type=file]),.row select{border-radius:0;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+
+/* scrolling dialogs: border is a real border, the two chamfer edges are painted as background so they never scroll away */
+.sheet::before,.modal-card::before{display:none}
+.sheet,.modal-card{
+  border:var(--t) solid var(--bd)!important;background-origin:border-box!important;background-repeat:no-repeat!important;
+  background:
+    linear-gradient(135deg,transparent calc(var(--cut) * .7071 - 1px),var(--bd) calc(var(--cut) * .7071 - 1px),var(--bd) calc(var(--cut) * .7071 + 1.4px),transparent calc(var(--cut) * .7071 + 1.4px)) 0 0/calc(var(--cut) * 2) calc(var(--cut) * 2) no-repeat,
+    linear-gradient(315deg,transparent calc(var(--cut) * .7071 - 1px),var(--bd) calc(var(--cut) * .7071 - 1px),var(--bd) calc(var(--cut) * .7071 + 1.4px),transparent calc(var(--cut) * .7071 + 1.4px)) 100% 100%/calc(var(--cut) * 2) calc(var(--cut) * 2) no-repeat,
+    var(--fill)!important;
+}
+.action-btn.heal-btn{--bd:#8be8cf;--fill:linear-gradient(145deg,#74dcc0,#3fae92);color:#05211a}
+.action-btn.damage-btn{--bd:#ff8f9d;--fill:linear-gradient(145deg,#e8798a,#cf4a5e);color:#fff}
+
+/* ==========================================================================
+   ARENA LAYER — holographic duel field, impact effects, alert states
+   ========================================================================== */
+.hint-line{margin:8px 2px 0;font-size:12px;color:var(--muted);line-height:1.4}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spinr{to{transform:rotate(-360deg)}}
+
+/* --- field behind the panels --- */
+.arena-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.arena-bg .ring{position:absolute;left:50%;top:50%;border-radius:50%;margin:0;display:block}
+.arena-bg .r1{--d:min(94vmin,820px);width:var(--d);height:var(--d);margin:calc(var(--d)/-2) 0 0 calc(var(--d)/-2);
+  background:repeating-conic-gradient(rgba(var(--theme-rgb),.55) 0 .5deg,transparent .5deg 5deg);
+  -webkit-mask:radial-gradient(circle,transparent calc(50% - 16px),#000 calc(50% - 15px) calc(50% - 2px),transparent calc(50% - 1px));
+  mask:radial-gradient(circle,transparent calc(50% - 16px),#000 calc(50% - 15px) calc(50% - 2px),transparent calc(50% - 1px));
+  opacity:.5;animation:spin 120s linear infinite}
+.arena-bg .r2{--d:min(66vmin,560px);width:var(--d);height:var(--d);margin:calc(var(--d)/-2) 0 0 calc(var(--d)/-2);
+  border:2px dashed rgba(var(--theme-rgb),.32);box-shadow:0 0 40px rgba(var(--theme-rgb),.14),inset 0 0 40px rgba(var(--theme-rgb),.1);
+  animation:spinr 70s linear infinite}
+.arena-bg .r3{--d:min(120vmin,1000px);width:var(--d);height:var(--d);margin:calc(var(--d)/-2) 0 0 calc(var(--d)/-2);
+  background:radial-gradient(circle,rgba(var(--theme-rgb),.2),rgba(var(--theme-rgb),.05) 45%,transparent 68%);animation:breathe 6s ease-in-out infinite}
+@keyframes breathe{50%{opacity:.55;transform:scale(1.06)}}
+.arena-bg .beam{position:absolute;left:calc(50% - 1px);top:0;bottom:0;width:2px;
+  background:linear-gradient(180deg,transparent,rgba(var(--theme-rgb),.7) 20%,rgba(var(--theme-rgb),.7) 80%,transparent);box-shadow:0 0 14px rgba(var(--theme-rgb),.5)}
+.arena-bg .beam::after{content:"";position:absolute;left:-3px;right:-3px;height:18%;top:-20%;
+  background:linear-gradient(180deg,transparent,rgb(var(--theme-bright)),transparent);filter:blur(1px);animation:beamV 3.2s linear infinite}
+@keyframes beamV{to{top:104%}}
+html.is-portrait .arena-bg .beam{left:0;right:0;top:calc(50% - 1px);bottom:auto;width:auto;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(var(--theme-rgb),.7) 20%,rgba(var(--theme-rgb),.7) 80%,transparent)}
+html.is-portrait .arena-bg .beam::after{left:-20%;right:auto;top:-3px;bottom:-3px;width:18%;height:auto;
+  background:linear-gradient(90deg,transparent,rgb(var(--theme-bright)),transparent);animation:beamH 3.2s linear infinite}
+@keyframes beamH{to{left:104%}}
+
+/* panels: energy sweep + softer glass so the field shows through */
+.arena-fx{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3}
+.arena-fx .scan{position:absolute;left:0;right:0;top:-45%;height:40%;
+  background:linear-gradient(180deg,transparent,rgba(var(--id),.13),transparent);animation:scanY 6s linear infinite}
+.player.current .arena-fx .scan{background:linear-gradient(180deg,transparent,rgba(var(--id),.24),transparent);animation-duration:3.6s}
+@keyframes scanY{to{top:110%}}
+.arena-fx .flash{position:absolute;inset:0;opacity:0;background:radial-gradient(circle at 50% 42%,var(--fc,#ff4060),transparent 72%)}
+.arena-fx .lag{display:none}
+.lpbar{position:relative}
+.lpbar i{position:relative;z-index:1}
+.lpbar .lagbar{position:absolute;left:0;top:0;bottom:0;width:100%;z-index:0;background:rgba(255,255,255,.85);
+  transition:width 1.1s cubic-bezier(.3,.7,.2,1) .35s}
+.lpbar::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),rgba(0,0,0,.55) calc(10% - 2px) 10%)}
+.lp{position:relative;text-shadow:0 0 .22em rgba(var(--id),.8),0 0 .6em rgba(var(--id),.35),0 3px 12px rgba(0,0,0,.7)}
+.lp.counting{animation:lpGlitch .14s steps(2) infinite}
+@keyframes lpGlitch{0%{text-shadow:-.04em 0 rgba(0,255,240,.8),.04em 0 rgba(255,0,110,.8),0 0 .3em rgba(var(--id),.9)}
+  100%{text-shadow:.04em 0 rgba(0,255,240,.8),-.04em 0 rgba(255,0,110,.8),0 0 .3em rgba(var(--id),.9)}}
+.pname{cursor:text;position:relative}
+.pname::after{content:"✎";margin-left:.45em;font-size:.7em;opacity:.35}
+.pname:hover::after{opacity:.9}
+.pname-input{width:min(100%,280px);text-align:center;font:inherit;color:var(--text);background:rgba(0,0,0,.45);
+  border:1px solid rgb(var(--id));border-radius:8px;padding:2px 8px;outline:none;box-shadow:0 0 18px rgba(var(--id),.5);caret-color:rgb(var(--id))}
+
+/* persistent danger / surplus states (set from the LP value) */
+.player[data-danger="1"] .lpbar i{animation:barPulse 1.6s ease-in-out infinite}
+.player[data-danger="2"]{animation:dangerBreath 2s ease-in-out infinite}
+.player[data-danger="2"] .lp{animation:heartbeat 1.1s ease-in-out infinite}
+.player[data-danger="3"]{animation:dangerBreath .9s ease-in-out infinite}
+.player[data-danger="3"] .lp{animation:heartbeat .62s ease-in-out infinite,flick 3s steps(1) infinite}
+.player.ko{filter:grayscale(.75) brightness(.72)}
+.player.ko .lp{opacity:.55;letter-spacing:.08em}
+.player.surplus .lp{color:rgb(var(--theme-bright));text-shadow:0 0 .25em rgba(var(--theme-bright),.9),0 0 .8em rgba(var(--theme-rgb),.6)}
+@keyframes barPulse{50%{filter:brightness(1.7)}}
+@keyframes dangerBreath{50%{box-shadow:inset 0 0 60px rgba(255,40,70,.4),0 0 24px rgba(255,40,70,.35)}}
+@keyframes heartbeat{0%,100%{transform:scale(1)}14%{transform:scale(1.07)}28%{transform:scale(1)}42%{transform:scale(1.045)}}
+@keyframes flick{0%,92%,96%{opacity:1}94%,98%{opacity:.45}}
+
+/* --- floating numbers, slams, flashes --- */
+#fxLayer,#fxFlash,#tint,#vig{position:fixed;inset:0;pointer-events:none}
+#fxLayer{z-index:165;overflow:hidden}
+#fxFlash{z-index:168;opacity:0}
+#fx{position:fixed;left:0;top:0;pointer-events:none;z-index:160}
+.fx-num{position:absolute;font:800 var(--fs,48px)/1 var(--num);white-space:nowrap;transform:translate(-50%,-50%);
+  color:var(--c);text-shadow:0 0 .35em var(--c),0 4px 0 rgba(0,0,0,.55);-webkit-text-stroke:calc(var(--lvl) * .35px) rgba(0,0,0,.65);will-change:transform,opacity}
+.fx-slam{position:absolute;transform:translate(-50%,-50%);font:800 var(--fs,96px)/1 var(--num);letter-spacing:.1em;color:#fff;white-space:nowrap;
+  text-shadow:0 0 18px var(--c),0 0 52px var(--c),4px 4px 0 rgba(0,0,0,.6)}
+.fx-pillar{position:absolute;width:var(--w,120px);transform:translateX(-50%);background:linear-gradient(0deg,transparent,var(--c),transparent);filter:blur(6px);transform-origin:50% 100%}
+.fx-rays{position:absolute;width:var(--sz,500px);height:var(--sz,500px);transform:translate(-50%,-50%);border-radius:50%;
+  background:repeating-conic-gradient(from 0deg,var(--c) 0 5deg,transparent 5deg 20deg);
+  -webkit-mask:radial-gradient(circle,#000,transparent 70%);mask:radial-gradient(circle,#000,transparent 70%)}
+.fx-cracks{position:absolute;overflow:visible;transform:translate(-50%,-50%);filter:drop-shadow(0 0 6px var(--c))}
+
+/* --- alert layers --- */
+#tint{z-index:150;opacity:0;mix-blend-mode:color;transition:opacity .8s}
+#vig{z-index:151;opacity:0;transition:opacity .6s}
+.hazard{position:fixed;left:0;right:0;height:9px;z-index:152;pointer-events:none;opacity:0;transition:opacity .6s;
+  background:repeating-linear-gradient(-45deg,var(--hz,#ff3040) 0 12px,#10040a 12px 24px);background-size:34px 34px;animation:hazard 1s linear infinite}
+.hazard.top{top:0}.hazard.bottom{bottom:0}
+@keyframes hazard{to{background-position:34px 0}}
+html.emergency #tint{opacity:.5;background:rgb(255,150,0)}
+html.emergency #vig{opacity:1;box-shadow:inset 0 0 90px 10px rgba(255,170,30,.55),inset 0 0 220px rgba(255,120,0,.3);animation:vigBreath 2.2s ease-in-out infinite}
+html.emergency .hazard{--hz:#ffb020;opacity:.75;animation-duration:2.4s}
+html.last-three #tint{opacity:.62;background:rgb(255,12,24);animation:tintStrobe .9s ease-in-out infinite}
+html.last-three #vig{opacity:1;box-shadow:inset 0 0 120px 24px rgba(255,10,30,.7),inset 0 0 280px rgba(255,0,20,.45);animation:vigStrobe .9s ease-in-out infinite}
+html.last-three .hazard{opacity:1;animation-duration:.45s}
+@keyframes vigBreath{50%{opacity:.45}}
+@keyframes vigStrobe{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes tintStrobe{50%{opacity:.4}}
+html.emergency:not(.last-three){
+  --theme-rgb:255,176,32 !important;--theme-bright:255,226,140 !important;--p1-rgb:255,196,60 !important;--p2-rgb:255,128,40 !important;
+  --base-rgb:28,17,2 !important;--gold:#ffb830 !important}
+html.last-three{
+  --theme-rgb:255,48,48 !important;--theme-bright:255,170,150 !important;--p1-rgb:255,64,84 !important;--p2-rgb:255,122,30 !important;
+  --base-rgb:28,3,6 !important;--gold:#ff5a4a !important}
+html.emergency:not(.last-three) .clock{color:#ffcf5a;animation:clockBeat 1s ease-in-out infinite}
+html.emergency:not(.last-three) .arena-bg .r1{animation-duration:40s}
+html.emergency:not(.last-three) .timer{animation:timerGlow 1.6s ease-in-out infinite}
+@keyframes clockBeat{50%{transform:scale(1.07);text-shadow:0 0 34px rgba(255,170,30,.9)}}
+@keyframes timerGlow{50%{box-shadow:inset 0 0 40px rgba(255,170,30,.4),0 0 40px rgba(255,170,30,.5)}}
+html.last-three .clock{color:#ff5a4a;animation:clockJitter .18s steps(2) infinite}
+html.last-three .timer{animation:timerRed .5s ease-in-out infinite}
+html.last-three .arena-bg .r1{animation-duration:14s}
+html.last-three .arena-bg .r2{animation-duration:9s}
+html.last-three .arena-bg .beam::after{animation-duration:.9s}
+html.last-three .player{animation:redPanel 1s ease-in-out infinite}
+html.last-three .player.current{animation-duration:.55s}
+html.last-three .edge-turn.active{animation:endPulse .5s ease-in-out infinite}
+html.last-three .player .arena-fx .scan{animation-duration:1.4s}
+html.last-three .timer-btn{animation:endPulse .5s ease-in-out infinite}
+@keyframes clockJitter{0%{transform:translate(1.5px,0);text-shadow:-3px 0 rgba(0,255,240,.7),3px 0 rgba(255,0,60,.9),0 0 26px rgba(255,40,40,.9)}
+  100%{transform:translate(-1.5px,.5px);text-shadow:3px 0 rgba(0,255,240,.7),-3px 0 rgba(255,0,60,.9),0 0 26px rgba(255,40,40,.9)}}
+@keyframes timerRed{50%{box-shadow:inset 0 0 44px rgba(255,20,40,.6),0 0 54px rgba(255,20,40,.8)}}
+@keyframes redPanel{50%{box-shadow:inset 0 0 70px rgba(255,20,40,.35),0 0 26px rgba(255,20,40,.45)}}
+@keyframes endPulse{50%{transform:scale(1.045);filter:brightness(1.4)}}
+
+/* alert banner */
+.alert-banner{position:fixed;left:0;right:0;top:12%;z-index:170;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
+.alert-banner.hidden{display:none}
+.ab-card{pointer-events:auto;position:relative;width:min(560px,100%);padding:18px 22px 16px;text-align:center;
+  background:linear-gradient(160deg,rgba(var(--base-rgb),.96),rgba(var(--base-rgb),.88));
+  clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);
+  box-shadow:inset 0 0 0 2px var(--ab),inset 0 0 60px color-mix(in srgb,var(--ab) 45%,transparent);animation:abIn .55s cubic-bezier(.2,1.3,.3,1) both}
+.ab-card::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(-45deg,color-mix(in srgb,var(--ab) 28%,transparent) 0 10px,transparent 10px 20px);
+  height:8px;animation:hazard 1s linear infinite;background-size:28px 28px}
+.alert-banner.emergency{--ab:#ffb020}
+.alert-banner.red{--ab:#ff2a3c}
+.ab-icon{font:800 38px/1 var(--num);color:var(--ab);text-shadow:0 0 18px var(--ab);animation:clockBeat .8s ease-in-out infinite}
+.ab-title{margin:4px 0 2px;font:800 clamp(24px,6vw,40px)/1.05 var(--num);letter-spacing:.06em;color:#fff;text-shadow:0 0 22px var(--ab)}
+.ab-text{font:600 14px/1.4 var(--ui);color:#ffe9d0;opacity:.92}
+.ab-ok{margin-top:12px;height:38px;padding:0 26px;border:0;font:800 14px/1 var(--ui);color:#1a0a00;background:var(--ab);
+  clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)}
+.alert-banner.red .ab-card{animation:abIn .4s cubic-bezier(.2,1.3,.3,1) both,abShake .12s steps(2) 8}
+@keyframes abIn{from{opacity:0;transform:scale(2.4) translateY(-30px);filter:blur(12px)}to{opacity:1;transform:none;filter:none}}
+@keyframes abShake{0%{translate:4px 0}100%{translate:-4px 1px}}
+
+/* --- dice & coin cinematic stage --- */
+.sheet#randomSheet{width:min(560px,100%)}
+.random-result{position:relative;overflow:hidden;min-height:max(210px,min(340px,50vh));padding:0;background:radial-gradient(ellipse at 50% 20%,rgba(var(--theme-rgb),.2),rgba(0,0,0,.65) 70%);border:1px solid rgba(var(--theme-rgb),.35)}
+.random-stage.scene{position:absolute;inset:0;display:block;color:#fff;perspective:900px;perspective-origin:50% 38%;--s:clamp(58px,15vmin,92px)}
+.sc-rays{position:absolute;left:50%;top:44%;width:130%;aspect-ratio:1;translate:-50% -50%;opacity:0;border-radius:50%;
+  background:repeating-conic-gradient(rgba(var(--theme-bright),.55) 0 4deg,transparent 4deg 16deg);
+  -webkit-mask:radial-gradient(circle,#000,transparent 62%);mask:radial-gradient(circle,#000,transparent 62%)}
+.sc-spot{position:absolute;left:50%;top:-10%;width:70%;height:120%;translate:-50% 0;opacity:.0;
+  background:conic-gradient(from 168deg at 50% 0,transparent 0 0deg,rgba(255,255,255,.28) 12deg,transparent 24deg);filter:blur(4px)}
+.sc-floor{position:absolute;left:50%;top:50%;width:92%;height:34%;translate:-50% 0;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(var(--theme-rgb),.5),rgba(var(--theme-rgb),.08) 55%,transparent 70%);transform:rotateX(70deg)}
+.sc-shadow{position:absolute;left:50%;top:55%;width:calc(var(--s) * 1.1);height:calc(var(--s) * .3);translate:-50% 0;border-radius:50%;background:rgba(0,0,0,.65);filter:blur(7px)}
+.sc-obj{position:absolute;left:50%;top:40%;width:0;height:0;transform-style:preserve-3d}
+.sc-tilt,.sc-spin{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}
+.sc-tilt{transform:rotateX(-16deg) rotateY(20deg)}
+.cube{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}
+.cube .face{position:absolute;width:var(--s);height:var(--s);left:calc(var(--s) / -2);top:calc(var(--s) / -2);border-radius:14%;
+  display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:15%;backface-visibility:hidden;
+  background:linear-gradient(145deg,#ffffff,#cfd8f2 60%,#aab6dc);box-shadow:inset 0 0 14px rgba(0,0,0,.25),inset 0 0 0 2px rgba(255,255,255,.7)}
+.cube .pip{place-self:center;width:72%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#44485c,#0c0f1c)}
+.cube .face.f1 .pip{background:radial-gradient(circle at 35% 30%,#ff6a7a,#a00020);width:92%}
+.cube .f1{transform:translateZ(calc(var(--s) / 2))}
+.cube .f6{transform:rotateY(180deg) translateZ(calc(var(--s) / 2))}
+.cube .f2{transform:rotateY(90deg) translateZ(calc(var(--s) / 2))}
+.cube .f5{transform:rotateY(-90deg) translateZ(calc(var(--s) / 2))}
+.cube .f3{transform:rotateX(90deg) translateZ(calc(var(--s) / 2))}
+.cube .f4{transform:rotateX(-90deg) translateZ(calc(var(--s) / 2))}
+.coin{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}
+.coin .disc{position:absolute;width:var(--cs);height:var(--cs);left:calc(var(--cs) / -2);top:calc(var(--cs) / -2);border-radius:50%}
+.coin .rim{background:radial-gradient(circle,#b8860b,#7a5200);}
+.coin .face{display:grid;place-items:center;backface-visibility:hidden;overflow:hidden;
+  background:radial-gradient(circle at 32% 28%,#fff6c4,#ffd25a 38%,#d49a1c 72%,#8a5d00);box-shadow:inset 0 0 0 calc(var(--cs) * .045) rgba(255,255,255,.28),inset 0 0 0 calc(var(--cs) * .09) rgba(120,70,0,.5)}
+.coin .face b{font:800 calc(var(--cs) * .56)/1 var(--num);color:#7a4a00;text-shadow:0 1px 0 rgba(255,255,255,.7),0 -1px 0 rgba(90,50,0,.6)}
+.coin .face::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.85) 50%,transparent 65%);background-size:250% 100%;animation:coinShine .9s linear infinite}
+@keyframes coinShine{from{background-position:150% 0}to{background-position:-150% 0}}
+.sc-ring{position:absolute;left:50%;top:55%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:3px solid rgb(var(--theme-bright));opacity:0;
+  box-shadow:0 0 22px rgb(var(--theme-rgb)),inset 0 0 22px rgb(var(--theme-rgb));transform:rotateX(70deg)}
+.sc-result{position:absolute;left:0;right:0;bottom:6%;text-align:center;pointer-events:none}
+.sc-big{font:800 clamp(34px,9vmin,64px)/1 var(--num);letter-spacing:.06em;color:#fff;text-shadow:0 0 24px rgb(var(--theme-rgb)),0 0 60px rgb(var(--theme-rgb)),0 4px 0 rgba(0,0,0,.5);opacity:0}
+.sc-big span{display:inline-block}
+.sc-sub{margin-top:4px;font:800 13px/1 var(--ui);letter-spacing:.3em;color:rgb(var(--theme-bright));opacity:0}
+.random-grid .action-btn{min-height:46px}
+
+@media (max-height:480px){.alert-banner{top:3%}.ab-card{padding:10px 18px 10px}.ab-icon{font-size:24px}.ab-title{font-size:26px}.ab-text{font-size:12px}.ab-ok{margin-top:8px;height:32px}}
+/* fx modes */
+html.fx-off .arena-bg i,html.fx-off .arena-fx .scan,html.fx-off .hazard,html.fx-off .ab-icon,
+html.fx-off .player,html.fx-off .player .lp,html.fx-off .clock,html.fx-off .timer,html.fx-off #vig,html.fx-off #tint,html.fx-off .timer-btn,html.fx-off .edge-turn{animation:none!important}
+html.fx-off .arena-bg .beam::after{display:none}
+html.fx-reduced .hazard,html.fx-reduced .clock,html.fx-reduced .timer,html.fx-reduced .player,html.fx-reduced .edge-turn,html.fx-reduced .timer-btn,html.fx-reduced .lp{animation-duration:3s!important}
+html.fx-reduced .arena-bg .r1,html.fx-reduced .arena-bg .r2{animation-duration:240s!important}
+@media (prefers-reduced-motion:reduce){.arena-bg i{animation-duration:400s!important}}
+</style>
+</head>
+<body>
+<div class="arena-bg" aria-hidden="true"><i class="ring r3"></i><i class="ring r1"></i><i class="ring r2"></i><i class="beam"></i></div>
+<div class="app">
+
+<main class="duel">
+  <section class="timer-zone" id="timerZone">
+    <div class="brand" aria-label="Duel Synapse MEIOCG"><span class="brand-title">Duel Synapse</span><span class="brand-meiocg">MEIOCG</span></div>
+    <div class="turn-tracker" id="turnTracker"><span id="turnContext">Duel 1: Turn 1</span></div>
+    <div class="timer" id="timer">
+      <div class="phase" id="phase">DUEL TIMER · 40 MINUTES</div>
+      <div class="clock" id="clock">40:00</div>
+      <div class="timebar" aria-hidden="true"><i id="timeFill"></i></div>
+    </div>
+    <button class="timer-btn" id="startPause" title="Start or pause the timer" aria-label="Start or pause the timer">▶</button>
+    <nav class="toolbar" aria-label="Duel tools">
+    <button class="icon-btn turn-icon" id="turnBtn" title="Show or hide the turn tracker" aria-label="Turn tracker"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+    <button class="icon-btn" id="headerRandom" title="Roll a die or flip a coin" aria-label="Dice and coin"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.2" class="f"/><circle cx="15" cy="15" r="1.2" class="f"/><circle cx="15" cy="9" r="1.2" class="f"/><circle cx="9" cy="15" r="1.2" class="f"/></svg></button>
+    <button class="icon-btn" id="undoBtn" title="Undo last change" aria-label="Undo last change"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+    <button class="icon-btn" id="redoBtn" title="Redo" aria-label="Redo"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+    <button class="icon-btn" id="resetBtn" title="Finish this duel and move to the next one" aria-label="Next duel or end match"><svg viewBox="0 0 24 24"><path d="m5 5 8 7-8 7z"/><path d="m13 5 8 7-8 7z"/></svg></button>
+    <button class="icon-btn" id="lpLogsBtn" type="button" title="Life point log" aria-label="Life point log"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1" class="f"/><circle cx="4" cy="12" r="1" class="f"/><circle cx="4" cy="18" r="1" class="f"/></svg></button>
+    <button class="icon-btn" id="matchHistoryBtn" title="Match history" aria-label="Match history"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></button>
+    <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg></button>
+  </nav>
+  </section>
+
+  <section class="player current" id="p1">
+    <div class="player-id-group"><button class="player-badge player-name-button" id="playerBadge1" type="button" title="Rename Player 1">P1</button><span class="player-score" id="playerScore1" aria-label="Player 1 wins"><span class="score-diamond">◆</span><strong>0</strong></span></div>
+    <div class="current-mark" id="mark1">Your turn</div>
+    <div class="pname">Player 1</div>
+    <div class="lp" id="lp1" data-value="8000" title="Tap to open the LP calculator">8000</div>
+    <div class="lpbar" aria-hidden="true"><i id="lpFill1"></i></div>
+        <div class="quick">
+      <button data-p="1" data-d="-100">−100</button><button data-p="1" data-d="-500">−500</button>
+      <button data-p="1" data-d="-1000">−1K</button><button data-p="1" data-d="-2000">−2K</button>
+      <button data-p="1" data-d="1000">+1K</button>
+    </div>
+    <button class="edge-turn" id="edgeTurn1" data-p="1" title="End phase">End phase</button>
+  </section>
+
+  <section class="player" id="p2">
+    <div class="player-id-group"><button class="player-badge player-name-button" id="playerBadge2" type="button" title="Rename Player 2">P2</button><span class="player-score" id="playerScore2" aria-label="Player 2 wins"><span class="score-diamond">◆</span><strong>0</strong></span></div>
+    <div class="current-mark hidden" id="mark2">Your turn</div>
+    <div class="pname">Player 2</div>
+    <div class="lp" id="lp2" data-value="8000" title="Tap to open the LP calculator">8000</div>
+    <div class="lpbar" aria-hidden="true"><i id="lpFill2"></i></div>
+        <div class="quick">
+      <button data-p="2" data-d="-100">−100</button><button data-p="2" data-d="-500">−500</button>
+      <button data-p="2" data-d="-1000">−1K</button><button data-p="2" data-d="-2000">−2K</button>
+      <button data-p="2" data-d="1000">+1K</button>
+    </div>
+    <button class="edge-turn" id="edgeTurn2" data-p="2" title="End phase">End phase</button>
+  </section>
+</main>
+</div>
+
+<!-- Life point log -->
+<div class="modal hidden" id="lpLogsModal">
+  <div class="modal-card lp-logs-card">
+    <div class="modal-head">
+      <div>
+        <h2>Life point log</h2>
+        <div class="lp-logs-subtitle">Every change this match · <span id="lpLogCount">0 changes</span></div>
+      </div>
+      <button class="modal-close" id="lpLogsClose" type="button" aria-label="Close">×</button>
+    </div>
+    <div class="lp-logs-summary">
+      <div><span>Player 1</span><strong id="logP1">8,000</strong></div>
+      <div><span>Player 2</span><strong id="logP2">8,000</strong></div>
+    </div>
+    <div class="lp-logs-list" id="lpLogsList">
+      <div class="lp-log-empty">No life point changes yet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- LP calculator -->
+<div class="modal hidden" id="lpModal">
+  <div class="sheet">
+    <h2>Life points</h2><p id="lpWho">Player 1</p>
+    <div class="lp-entry">
+      <div class="lp-entry-label">Amount</div>
+      <div class="lp-entry-display" id="lpAmount" aria-label="Life point amount">0</div>
+    </div>
+    <div class="lp-presets" id="lpPresets">
+      <button type="button" data-set="8000">Set 8000</button>
+      <button type="button" data-set="4000">Set 4000</button>
+      <button type="button" data-set="2000">Set 2000</button>
+      <button type="button" data-set="0">Set 0</button>
+    </div>
+    <div class="lp-keypad" id="lpKeypad">
+      <button type="button" data-key="7">7</button>
+      <button type="button" data-key="8">8</button>
+      <button type="button" data-key="9">9</button>
+      <button type="button" data-key="4">4</button>
+      <button type="button" data-key="5">5</button>
+      <button type="button" data-key="6">6</button>
+      <button type="button" data-key="1">1</button>
+      <button type="button" data-key="2">2</button>
+      <button type="button" data-key="3">3</button>
+      <button type="button" data-key="divide" aria-label="Halve or divide the life points">÷</button>
+      <button type="button" data-key="0">0</button>
+      <button type="button" data-key="back" aria-label="Delete last digit">⌫</button>
+    </div>
+    <button class="modal-close lp-modal-close" id="lpCancel" type="button" aria-label="Close the life point calculator">×</button>
+    <div class="actions lp-calc-actions">
+      <button class="action-btn lp-zeroes-btn" id="lp00" type="button" aria-label="Add two zeroes">00</button>
+      <button class="action-btn" id="lpClear" type="button">Clear</button>
+      <button class="action-btn" id="lpBack" type="button" aria-label="Delete last digit">⌫</button>
+      <button class="action-btn damage-btn" id="lpDamage" type="button">− Damage</button>
+      <button class="action-btn primary heal-btn" id="lpHeal" type="button">+ Heal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Dice and coin -->
+<div class="modal hidden" id="randomModal">
+  <div class="sheet">
+    <h2>Dice and coin</h2><p id="randomWho">Duel utility</p>
+    <div class="random-grid">
+      <button class="action-btn primary" id="diceBtn" type="button">Roll die</button>
+      <button class="action-btn" id="coinBtn" type="button">Flip coin</button>
+    </div>
+    <div class="random-result" id="randomResult" aria-live="polite">
+      <div class="random-stage" id="randomStage">Pick one to start</div>
+    </div>
+    <div class="actions"><button class="action-btn" id="randomClose" type="button">Close</button></div>
+  </div>
+</div>
+
+<!-- Match notification -->
+<div class="modal hidden" id="matchNoticeModal">
+  <div class="sheet match-notice">
+    <div class="match-notice-kicker" id="noticeKicker">MATCH</div>
+    <h2 id="noticeTitle">Winner</h2>
+    <p id="noticeText"></p>
+    <div class="actions">
+      <button class="action-btn primary" id="noticeOk" type="button">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- Next duel / end match confirmation -->
+<div class="modal hidden" id="nextDuelModal">
+  <div class="sheet match-notice">
+    <div class="match-notice-kicker">MATCH</div>
+    <h2 id="nextDuelTitle">Start Duel 2?</h2>
+    <p id="nextDuelText"></p>
+    <div class="actions">
+      <button class="action-btn" id="nextDuelCancel" type="button">Cancel</button>
+      <button class="action-btn primary" id="nextDuelConfirm" type="button">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Match history -->
+<div class="modal hidden" id="matchHistoryModal">
+  <div class="sheet history-sheet">
+    <div class="modal-head history-head">
+      <div>
+        <h2>Match history</h2>
+        <p>Previous Duel Synapse matches</p>
+      </div>
+      <button class="modal-close" id="matchHistoryClose" type="button" aria-label="Close match history">×</button>
+    </div>
+    <div id="matchHistoryList" class="history-list">
+      <div class="history-empty">No completed matches yet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Match details -->
+<div class="modal hidden" id="matchDetailModal">
+  <div class="sheet history-detail-sheet">
+    <div class="modal-head history-detail-head">
+      <div>
+        <h2 id="matchDetailTitle">Match details</h2>
+        <p id="matchDetailSubtitle"></p>
+      </div>
+      <button class="action-btn small" id="matchDetailCopy" type="button" title="Copy a text summary of this match" aria-label="Copy match summary">Copy summary</button>
+      <button class="modal-close" id="matchDetailClose" type="button" aria-label="Close match details">×</button>
+    </div>
+    <div id="matchDetailBody" class="history-detail-body"></div>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="modal hidden" id="settingsModal">
+  <div class="sheet">
+    <h2>Settings</h2><p>Duel rules, screen layout and appearance.</p>
+
+    <div class="section">
+      <h3>Duel</h3>
+      <div class="row"><label for="setLP">Starting LP</label><input id="setLP" type="number" min="1" step="100" value="8000"></div>
+      <div class="row"><label for="setDuel">Duel minutes</label><input id="setDuel" type="number" min="1" max="180" value="40"></div>
+      <div class="row"><label for="setExtra">Last 3 turns</label><input id="setExtra" type="number" min="1" max="60" value="10"></div>
+      <div class="row"><label for="setWarn">Emergency alert (min left)</label><input id="setWarn" type="number" min="1" max="60" value="5"></div>
+      <div class="row"><label for="setLayout">Screen layout</label><select id="setLayout"><option value="auto">Auto</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></div>
+    </div>
+
+    <div class="section">
+      <h3>Duelists</h3>
+      <div class="row"><label for="setName1">Player 1</label><input id="setName1" type="text" maxlength="24" value="Player 1" autocomplete="off"></div>
+      <div class="row"><label for="setName2">Player 2</label><input id="setName2" type="text" maxlength="24" value="Player 2" autocomplete="off"></div>
+      <p class="hint-line">Names also appear in match history. You can tap a name on the duel screen to rename it.</p>
+    </div>
+
+    <div class="section">
+      <h3>Effects</h3>
+      <div class="row"><label for="setFx">Animations</label><select id="setFx"><option value="full">Full</option><option value="reduced">Reduced</option><option value="off">Off</option></select></div>
+      <div class="row"><label for="setSfx">Sound effects</label><select id="setSfx"><option value="on">On</option><option value="off">Off</option></select></div>
+      <div class="row"><label for="setAutoTheme">Match wallpaper</label><select id="setAutoTheme"><option value="on">On</option><option value="off">Off</option></select></div>
+    </div>
+
+    <div class="section">
+      <h3>Wallpaper</h3>
+      <label class="upload">Choose an image
+        <input id="wallpaper" type="file" accept="image/*">
+      </label>
+      <div class="actions"><button class="action-btn" id="clearWallpaper" type="button">Remove wallpaper</button></div>
+    </div>
+
+    <div class="section">
+      <h3>Appearance</h3>
+      <div class="row"><label for="setArtwork">Artwork</label><input id="setArtwork" type="range" min="0" max="100" value="96"><output class="row-value" id="setArtworkOut">96%</output></div>
+      <div class="row"><label for="setGlass">Panel glass</label><input id="setGlass" type="range" min="0" max="35" value="13"><output class="row-value" id="setGlassOut">13%</output></div>
+      <div class="row"><label for="setButtonGlass">Button glass</label><input id="setButtonGlass" type="range" min="0" max="30" value="5"><output class="row-value" id="setButtonGlassOut">5%</output></div>
+      <div class="row"><label for="setButtonSize">Button size</label><input id="setButtonSize" type="range" min="55" max="280" value="100"><output class="row-value" id="setButtonSizeOut">100%</output></div>
+      <p class="row-hint">Button size resizes every button in the app. The top bar changes only slightly so it stays usable.</p>
+    </div>
+
+    <div class="section">
+      <h3>Music</h3>
+      <div class="row music-row">
+        <label>Last 3 turns</label>
+        <div class="music-controls">
+          <input id="lastThreeMusicFile" type="file" accept="audio/*">
+          <button id="lastThreeMusicToggle" class="settings-action" title="Preview last 3 turns music" type="button">▶</button>
+          <button id="lastThreeMusicClear" class="settings-action" title="Remove last 3 turns music" type="button">×</button>
+        </div>
+      </div>
+      <div class="row music-row">
+        <label>Background</label>
+        <div class="music-controls">
+          <input id="musicFile" type="file" accept="audio/*">
+          <button id="musicToggle" class="settings-action" title="Play or pause music" type="button">▶</button>
+          <button id="musicClear" class="settings-action" title="Remove music" type="button">×</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section match-reset-section">
+      <h3>Match data</h3>
+      <button class="action-btn danger-action" id="resetSynapse" type="button">Reset Duel Synapse</button>
+    </div>
+
+    <div class="actions">
+      <button class="action-btn" id="settingsClose" type="button">Cancel</button>
+      <button class="action-btn primary" id="settingsApply" type="button">Save settings</button>
+    </div>
+  </div>
+</div>
+
+<div id="tint" aria-hidden="true"></div><div id="vig" aria-hidden="true"></div>
+<div class="hazard top" aria-hidden="true"></div><div class="hazard bottom" aria-hidden="true"></div>
+<canvas id="fx" aria-hidden="true"></canvas><div id="fxFlash" aria-hidden="true"></div><div id="fxLayer" aria-hidden="true"></div>
+<div class="alert-banner hidden" id="alertBanner" role="alert"><div class="ab-card"><div class="ab-icon" id="abIcon">⚠</div><div class="ab-title" id="abTitle"></div><div class="ab-text" id="abText"></div><button class="ab-ok" id="abOk" type="button">Got it</button></div></div>
+<script>
+/* ARENA FX — impact effects, dice/coin, wallpaper theming, alerts. Reads window.duelSynapseState. */
+if(typeof window.escapeHtml!=="function")window.escapeHtml=function(v){return String(v).replace(/[&<>"']/g,function(ch){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[ch]})};
+(function(){
+  "use strict";
+  const $=id=>document.getElementById(id), root=document.documentElement;
+  const LS={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(_){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(_){}}};
+  const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)], clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const reduced0=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let fxMode=LS.get("duelSynapseFx",reduced0?"reduced":"full");
+  let sfxOn=LS.get("duelSynapseSfx","on")!=="off";
+  const mult=()=>fxMode==="full"?1:fxMode==="reduced"?.4:0;
+  const S=()=>window.duelSynapseState;
+  function applyFxClass(){root.classList.toggle("fx-off",fxMode==="off");root.classList.toggle("fx-reduced",fxMode==="reduced");}
+  applyFxClass();
+
+  /* ---------- geometry helpers (offset-based, so forced rotation keeps working) ---------- */
+  function loc(el){let x=0,y=0,n=el;while(n&&n!==document.body){x+=n.offsetLeft-(n.offsetParent&&n.offsetParent!==document.body?0:0);y+=n.offsetTop;n=n.offsetParent;}
+    return{x,y,w:el.offsetWidth,h:el.offsetHeight,cx:x+el.offsetWidth/2,cy:y+el.offsetHeight/2};}
+  function vecLocal(dx,dy){
+    if(root.classList.contains("force-landscape"))return[dy,-dx];
+    if(root.classList.contains("force-portrait"))return[-dy,dx];
+    return[dx,dy];
+  }
+  const rgbOf=v=>(getComputedStyle(root).getPropertyValue(v)||"").trim()||"210,169,78";
+
+  /* ---------- audio ---------- */
+  let ac=null;
+  function A(){if(!sfxOn)return null;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")ac.resume();return ac}catch(_){return null}}
+  function tone(f,t0,dur,type,vol,f2){const c=A();if(!c)return;const t=c.currentTime+t0,o=c.createOscillator(),g=c.createGain();
+    o.type=type||"sine";o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+    g.gain.setValueAtTime(vol||.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur+.03);}
+  function noise(t0,dur,vol,freq){const c=A();if(!c)return;const n=Math.floor(c.sampleRate*dur),b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);
+    for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);const s=c.createBufferSource();s.buffer=b;const f=c.createBiquadFilter();f.type="lowpass";f.frequency.value=freq||1800;
+    const g=c.createGain();g.gain.value=vol||.2;s.connect(f);f.connect(g);g.connect(c.destination);s.start(c.currentTime+t0);}
+  const sfx={
+    hit(l){tone(150+l*8,0,.25+l*.05,"sine",.14+l*.03,40);noise(0,.12+l*.05,.1+l*.04,900+l*500);if(l>=4)tone(60,0,.7,"sawtooth",.1,30);},
+    heal(l){const n=[523,659,784,988,1175,1568];for(let i=0;i<Math.min(n.length,l+2);i++)tone(n[i],i*.07,.5,"sine",.08);if(l>=4)tone(2093,.4,.9,"triangle",.05);},
+    ko(){tone(90,0,1.2,"sawtooth",.16,25);noise(0,1.1,.28,2500);tone(55,.1,1.6,"sine",.2,28);},
+    rattle(d){for(let i=0;i<9;i++)noise(i*d/9*(.7+Math.random()*.3),.03,.07,3500);},
+    land(){tone(110,0,.3,"sine",.2,45);noise(0,.1,.12,2200);},
+    coinRing(){tone(1760,0,1.1,"sine",.07);tone(2637,0,.8,"sine",.045);tone(1318,0,1.3,"triangle",.04);},
+    whoosh(){noise(0,.5,.08,700);tone(300,0,.5,"sine",.04,900);},
+    emergency(){[0,.28,.56].forEach(t=>tone(880,t,.18,"square",.07));},
+    red(){for(let i=0;i<5;i++){tone(600,i*.4,.4,"sawtooth",.08,1000);tone(1000,i*.4+.2,.2,"sawtooth",.06,640);}}
+  };
+
+  /* ---------- particle canvas ---------- */
+  const cv=$("fx"),ctx=cv.getContext("2d");let W=0,H=0,DPR=1;
+  function size(){const b=document.body;W=b.clientWidth;H=b.clientHeight;DPR=Math.min(2,window.devicePixelRatio||1);
+    cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.width=W+"px";cv.style.height=H+"px";}
+  size();addEventListener("resize",size);addEventListener("orientationchange",()=>setTimeout(size,200));
+  if(window.ResizeObserver)new ResizeObserver(size).observe(document.body);
+  const P=[];let raf=0,last=0;
+  function add(p){if(P.length<1500)P.push(p);wake();}
+  function wake(){if(!raf){last=performance.now();raf=requestAnimationFrame(loop);}}
+  function spark(x,y,ang,spd,life,sz,c,g,kind){add({k:kind||"spark",x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,l:life,m:life,s:sz,c,g:g||0,d:.985,r:rnd(0,6.28),vr:rnd(-.3,.3)});}
+  function ring(x,y,grow,life,lw,c,delay){const f=()=>add({k:"ring",x,y,vx:0,vy:0,l:life,m:life,s:lw,c,g:0,d:1,rad:8,gr:grow});delay?setTimeout(f,delay):f();}
+  function glow(x,y,rad,life,c){add({k:"glow",x,y,vx:0,vy:0,l:life,m:life,s:rad,c,g:0,d:1});}
+  function bolt(x1,y1,x2,y2,c,life){const pts=[[x1,y1]],n=9;for(let i=1;i<n;i++){const t=i/n;pts.push([x1+(x2-x1)*t+rnd(-26,26),y1+(y2-y1)*t+rnd(-12,12)]);}pts.push([x2,y2]);add({k:"bolt",x:0,y:0,vx:0,vy:0,l:life||16,m:life||16,s:3,c,pts,g:0,d:1});}
+  function ambient(dt){
+    if(fxMode!=="full"||document.hidden)return;
+    const red=root.classList.contains("last-three"),em=root.classList.contains("emergency");
+    let rate=red?1.1:em?.35:.05;rate*=dt;
+    while(rate>0){ if(Math.random()<Math.min(1,rate)){
+        const c=red?pick(["255,60,50","255,140,40","255,220,160"]):em?pick(["255,190,50","255,230,150"]):rgbOf("--theme-bright");
+        add({k:"ember",x:rnd(0,W),y:H+8,vx:rnd(-.5,.5),vy:-rnd(red?1.6:.5,red?4.4:2),l:rnd(90,200),m:200,s:rnd(1,red?3.2:2.2),c,g:-.004,d:.995,r:0,vr:0});}
+      rate-=1;}
+  }
+  function loop(t){
+    raf=0;const dt=clamp((t-last)/16.67,0,3);last=t;
+    ctx.setTransform(DPR,0,0,DPR,0,0);ctx.clearRect(0,0,W,H);ctx.globalCompositeOperation="lighter";
+    ambient(dt);
+    for(let i=P.length-1;i>=0;i--){
+      const p=P[i];p.l-=dt;if(p.l<=0){P.splice(i,1);continue;}
+      const a=p.l/p.m;
+      if(p.k==="ring"){p.rad+=p.gr*dt;ctx.strokeStyle="rgba("+p.c+","+(a*.9)+")";ctx.lineWidth=p.s*a+.5;ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.1,p.rad),0,6.283);ctx.stroke();continue;}
+      if(p.k==="glow"){const r=p.s*(1.3-a*.5),g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);g.addColorStop(0,"rgba("+p.c+","+(a*.8)+")");g.addColorStop(1,"rgba("+p.c+",0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,r,0,6.283);ctx.fill();continue;}
+      if(p.k==="bolt"){ctx.strokeStyle="rgba("+p.c+","+a+")";ctx.shadowColor="rgb("+p.c+")";ctx.shadowBlur=14;ctx.lineWidth=p.s*a+1;ctx.beginPath();p.pts.forEach((q,j)=>j?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.stroke();ctx.shadowBlur=0;continue;}
+      p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;const dr=Math.pow(p.d,dt);p.vx*=dr;p.vy*=dr;p.r+=p.vr*dt;
+      if(p.k==="spark"){ctx.strokeStyle="rgba("+p.c+","+a+")";ctx.lineWidth=p.s;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*2.4,p.y-p.vy*2.4);ctx.stroke();}
+      else if(p.k==="shard"){ctx.fillStyle="rgba("+p.c+","+a+")";ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.beginPath();ctx.moveTo(0,-p.s);ctx.lineTo(p.s*.6,p.s*.8);ctx.lineTo(-p.s*.6,p.s*.5);ctx.closePath();ctx.fill();ctx.restore();}
+      else if(p.k==="ember"||p.k==="dot"){const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.s*3);g.addColorStop(0,"rgba("+p.c+","+(a*.9)+")");g.addColorStop(1,"rgba("+p.c+",0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,p.s*3,0,6.283);ctx.fill();}
+      else if(p.k==="confetti"){ctx.fillStyle="rgba("+p.c+","+a+")";ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillRect(-p.s,-p.s*.4,p.s*2,p.s*.8);ctx.restore();}
+    }
+    ctx.globalCompositeOperation="source-over";
+    if(P.length||(fxMode==="full"&&(root.classList.contains("last-three")||root.classList.contains("emergency")||ambientOn)))raf=requestAnimationFrame(loop);
+  }
+  let ambientOn=false;
+  function ambientCheck(){ambientOn=fxMode==="full"&&!document.hidden;if(ambientOn)wake();}
+  document.addEventListener("visibilitychange",ambientCheck);
+
+  /* ---------- DOM effect helpers ---------- */
+  const layer=()=>$("fxLayer");
+  function shakeEl(el,amp,ms,rot){if(!el||!el.animate||fxMode!=="full")return;const k=[],n=Math.max(4,Math.round(ms/36));
+    for(let i=0;i<n;i++){const f=1-i/n;k.push({transform:"translate("+rnd(-1,1)*amp*f+"px,"+rnd(-1,1)*amp*f+"px) rotate("+rnd(-1,1)*(rot||0)*f+"deg)"});}
+    k.push({transform:"none"});el.animate(k,{duration:ms,easing:"linear"});}
+  function flash(color,alpha,ms){const f=$("fxFlash");if(!f||!f.animate||fxMode==="off")return;f.style.background=color;f.animate([{opacity:alpha*(fxMode==="full"?1:.5)},{opacity:0}],{duration:ms,easing:"ease-out"});}
+  function floatText(txt,x,y,color,fs,lvl,up){
+    const d=document.createElement("div");d.className="fx-num";d.textContent=txt;d.style.cssText="left:"+x+"px;top:"+y+"px;--c:"+color+";--fs:"+fs+"px;--lvl:"+lvl;
+    layer().appendChild(d);
+    const rise=up||(70+lvl*16);
+    const a=d.animate([
+      {transform:"translate(-50%,-50%) scale(.2)",opacity:0},
+      {transform:"translate(-50%,-50%) scale("+(1.45+lvl*.08)+")",opacity:1,offset:.16},
+      {transform:"translate(-50%,-50%) scale(1)",opacity:1,offset:.3},
+      {transform:"translate(-50%,calc(-50% - "+rise+"px)) scale(.92)",opacity:0}],{duration:1100+lvl*150,easing:"cubic-bezier(.2,.8,.3,1)"});
+    a.onfinish=()=>d.remove();
+  }
+  function slam(txt,x,y,color,fs,ms){
+    const d=document.createElement("div");d.className="fx-slam";d.textContent=txt;d.style.cssText="left:"+x+"px;top:"+y+"px;--c:"+color+";--fs:"+fs+"px";layer().appendChild(d);
+    const a=d.animate([{transform:"translate(-50%,-50%) scale(5)",opacity:0,filter:"blur(16px)"},{transform:"translate(-50%,-50%) scale(.92)",opacity:1,filter:"blur(0)",offset:.14},
+      {transform:"translate(-50%,-50%) scale(1)",opacity:1,offset:.7},{transform:"translate(-50%,-50%) scale(1.1)",opacity:0}],{duration:ms||1500,easing:"ease-out"});
+    a.onfinish=()=>d.remove();
+  }
+  function cracks(x,y,color,lvl){
+    const NS="http://www.w3.org/2000/svg",sz=Math.min(W,H)*(.5+lvl*.08),svg=document.createElementNS(NS,"svg");
+    svg.setAttribute("class","fx-cracks");svg.setAttribute("width",sz);svg.setAttribute("height",sz);svg.setAttribute("viewBox","-100 -100 200 200");
+    svg.style.cssText="left:"+x+"px;top:"+y+"px;--c:"+color;
+    const n=7+lvl*2;let h="";
+    for(let i=0;i<n;i++){let a=i/n*6.283+rnd(-.2,.2),px=0,py=0,pts="0,0";const segs=Math.floor(rnd(3,6));
+      for(let j=0;j<segs;j++){const r=rnd(14,26);a+=rnd(-.35,.35);px+=Math.cos(a)*r;py+=Math.sin(a)*r;pts+=" "+px.toFixed(1)+","+py.toFixed(1);}
+      h+='<polyline points="'+pts+'" fill="none" stroke="#fff" stroke-width="'+rnd(.6,1.6).toFixed(2)+'" stroke-linejoin="bevel" opacity=".9"/>';}
+    svg.innerHTML=h;layer().appendChild(svg);
+    const a=svg.animate([{opacity:0,transform:"translate(-50%,-50%) scale(.6)"},{opacity:1,transform:"translate(-50%,-50%) scale(1)",offset:.08},{opacity:.9,offset:.7},{opacity:0}],{duration:2600,easing:"ease-out"});
+    a.onfinish=()=>svg.remove();
+  }
+  function pillar(x,top,h,color,w){
+    const d=document.createElement("div");d.className="fx-pillar";d.style.cssText="left:"+x+"px;top:"+top+"px;height:"+h+"px;--c:"+color+";--w:"+w+"px";layer().appendChild(d);
+    const a=d.animate([{opacity:0,transform:"translateX(-50%) scaleY(0) scaleX(.2)"},{opacity:.95,transform:"translateX(-50%) scaleY(1) scaleX(1)",offset:.25},{opacity:0,transform:"translateX(-50%) scaleY(1) scaleX(.2)"}],{duration:1000,easing:"ease-out"});
+    a.onfinish=()=>d.remove();
+  }
+  function rays(x,y,color,sz,ms){
+    const d=document.createElement("div");d.className="fx-rays";d.style.cssText="left:"+x+"px;top:"+y+"px;--c:"+color+";--sz:"+sz+"px";layer().appendChild(d);
+    const a=d.animate([{opacity:0,transform:"translate(-50%,-50%) rotate(0) scale(.3)"},{opacity:.85,offset:.2},{opacity:0,transform:"translate(-50%,-50%) rotate(50deg) scale(1.15)"}],{duration:ms||1500,easing:"ease-out"});
+    a.onfinish=()=>d.remove();
+  }
+  function panelFlash(p,color,alpha,ms){
+    const f=document.querySelector("#p"+p+" .arena-fx .flash");if(!f||!f.animate||fxMode==="off")return;f.style.setProperty("--fc",color);
+    f.animate([{opacity:alpha},{opacity:0}],{duration:ms,easing:"ease-out"});
+  }
+
+  /* ---------- LP impact ---------- */
+  function lpFx(p,before,after,delta){
+    const m=mult();if(!m)return;
+    const max=Math.max(1,Number($("setLP")&&$("setLP").value)||8000);
+    const dmg=delta<0,amt=Math.abs(delta),mag=clamp(amt/max*2,0,1),ratio=clamp(after/max,0,1);
+    let power=dmg?(.42*mag+.58*(1-ratio)):(.5*mag+.5*ratio);
+    const ko=dmg&&after<=0;if(ko)power=1;
+    if(root.classList.contains("last-three"))power=Math.min(1,power*1.15+.1);
+    const lvl=ko?5:clamp(1+Math.floor(power*4.999),1,5);
+    const lpEl=$("lp"+p),panel=$("p"+p),r=loc(lpEl),pr=loc(panel);
+    const cx=r.cx,cy=r.cy,app=document.querySelector(".app");
+    const col=dmg?(ko?"255,255,255":"255,70,90"):"90,255,190";
+    const c1=dmg?"255,70,90":"90,255,190",c2=dmg?"255,160,70":"255,225,120",c3="255,255,255";
+    const sign=dmg?"−":"+",numCol=dmg?"#ff4a62":(lvl>=4?"#ffe27a":"#5dffc0");
+    floatText(sign+amt.toLocaleString(),cx,cy-r.h*.1,numCol,clamp(26+lvl*11,30,92)*(W<420?.8:1),lvl);
+    if(dmg)sfx.hit(lvl);else sfx.heal(lvl);
+    /* LP number reaction */
+    if(lpEl.animate){
+      const k=dmg?[{filter:"brightness(3) saturate(3)",transform:"scale("+(1+lvl*.07)+") translateX("+rnd(-6,6)*lvl+"px)"},{filter:"none",transform:"none"}]
+                  :[{filter:"brightness(2.4) saturate(1.8)",transform:"scale("+(1+lvl*.06)+")"},{filter:"none",transform:"none"}];
+      lpEl.animate(k,{duration:360+lvl*130,easing:"cubic-bezier(.2,.9,.3,1)"});
+      if(dmg&&lvl>=3)lpEl.animate([{textShadow:"-.07em 0 #0ff,.07em 0 #f0f"},{textShadow:".06em 0 #0ff,-.06em 0 #f0f",offset:.3},{textShadow:"none"}],{duration:520,easing:"steps(6)"});
+    }
+    panelFlash(p,dmg?"#ff2a48":(lvl>=4?"#ffd860":"#3dffb0"),.18+lvl*.1,400+lvl*160);
+    /* particles */
+    const n=Math.round((8+lvl*lvl*7)*m);
+    if(dmg){
+      for(let i=0;i<n;i++)spark(cx,cy,rnd(0,6.283),rnd(2,4+lvl*2.6),rnd(18,46),rnd(1,2.6),pick([c1,c2,c3]),.12);
+      if(lvl>=2)for(let i=0;i<Math.round(n*.4);i++)spark(cx,cy,rnd(0,6.283),rnd(2,3+lvl*2),rnd(40,90),rnd(3,7),pick([c1,c3]),.28,"shard");
+      for(let k=0;k<Math.min(lvl,4);k++)ring(cx,cy,3.5+lvl*1.3+k,26+lvl*3,3+lvl,k%2?c2:c1,k*70);
+      glow(cx,cy,70+lvl*55,16+lvl*3,c1);
+      if(lvl>=4){const t=lvl-2;for(let i=0;i<t;i++)bolt(cx+rnd(-pr.w/2,pr.w/2),Math.max(0,cy-rnd(180,320)),cx+rnd(-30,30),cy,pick(["255,200,210","255,255,255"]),16);}
+      if(lvl>=3)cracks(cx,cy,"rgb(255,70,90)",lvl);
+    }else{
+      for(let i=0;i<n;i++)spark(cx+rnd(-r.w/2,r.w/2)*.8,cy+rnd(-8,r.h/2),-1.57+rnd(-.9,.9),rnd(1.2,2.4+lvl*1.3),rnd(40,95),rnd(1,2.6),pick([c1,c2,c3]),-.012,"dot");
+      for(let k=0;k<Math.min(lvl,4);k++)ring(cx,cy,2.6+lvl*1.1+k,34+lvl*4,2+lvl,k%2?c2:c1,k*110);
+      glow(cx,cy,80+lvl*55,24+lvl*3,c2);
+      if(lvl>=3)pillar(cx,pr.y,pr.h,"rgba(120,255,200,.8)",Math.min(pr.w*.5,60+lvl*24));
+      if(lvl>=4)rays(cx,cy,"rgba(255,226,130,.7)",Math.min(W,H)*1.1,1700);
+      if(lvl>=5){for(let i=0;i<Math.round(90*m);i++)add({k:"confetti",x:pr.x+rnd(0,pr.w),y:pr.y-rnd(0,60),vx:rnd(-1,1),vy:rnd(1,3.4),l:rnd(70,130),m:130,s:rnd(3,6),c:pick(["255,226,120","90,255,190","255,255,255"]),g:.03,d:.99,r:rnd(0,6),vr:rnd(-.2,.2)});}
+    }
+    /* screen-level */
+    if(lvl>=2)flash(dmg?"rgba(255,40,70,1)":"rgba(120,255,200,1)",.06+lvl*.05,300+lvl*80);
+    if(dmg&&lvl>=3)shakeEl(app,lvl*2.6,260+lvl*90,lvl*.25);
+    if(!dmg&&lvl>=4)shakeEl(app,lvl*1.2,300,0);
+    if(lvl>=5)flash(dmg?"rgba(255,255,255,1)":"rgba(255,240,170,1)",.55,600);
+    if(ko){
+      slam("K.O.",cx,cy,"#ff3050",clamp(Math.min(W,H)*.2,70,200),1700);
+      for(let w=0;w<5;w++)setTimeout(()=>{for(let i=0;i<Math.round(60*m);i++)spark(cx,cy,rnd(0,6.283),rnd(3,13),rnd(30,80),rnd(1,3),pick([c1,c2,c3]),.15);ring(cx,cy,9+w*2,40,5,w%2?c2:c1);},w*160);
+      for(let i=0;i<4;i++)bolt(cx+rnd(-pr.w/2,pr.w/2),0,cx+rnd(-40,40),cy,"255,255,255",20);
+      cracks(cx,cy,"rgb(255,40,70)",5);cracks(cx+rnd(-80,80),cy+rnd(-60,60),"rgb(255,40,70)",4);
+      sfx.ko();shakeEl(app,22,900,1.4);
+      if(app&&app.animate)app.animate([{filter:"none"},{filter:"saturate(0) contrast(1.8) brightness(1.4)",offset:.1},{filter:"none"}],{duration:700});
+    }
+  }
+
+  /* ---------- persistent LP danger state ---------- */
+  const lastDanger={1:-1,2:-1};
+  function sync(p,value){
+    const max=Math.max(1,Number($("setLP")&&$("setLP").value)||8000),r=value/max;
+    const lv=value<=0?4:r<=.125?3:r<=.25?2:r<=.5?1:0,panel=$("p"+p);if(!panel)return;
+    if(lastDanger[p]!==lv){lastDanger[p]=lv;if(lv)panel.dataset.danger=lv;else delete panel.dataset.danger;panel.classList.toggle("ko",value<=0);}
+    panel.classList.toggle("surplus",value>max*1.0001);
+    const lag=panel.querySelector(".lagbar"),fill=$("lpFill"+p);if(lag&&fill)lag.style.width=Math.max(0,Math.min(100,r*100))+"%";
+  }
+
+  /* ---------- wallpaper-aware theme ---------- */
+  const THEME_VARS=["--theme-rgb","--theme-bright","--p1-rgb","--p2-rgb","--base-rgb","--gold","--auto-dim","--auto-panel"];
+  function hsl2rgb(h,s,l){h=((h%360)+360)%360/360;const f=n=>{const k=(n+h*12)%12,a=s*Math.min(l,1-l);return l-a*Math.max(-1,Math.min(k-3,9-k,1))};return[Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];}
+  function setVars(v){THEME_VARS.forEach(k=>{if(v[k]!=null)root.style.setProperty(k,v[k]);});}
+  function clearTheme(){THEME_VARS.forEach(k=>root.style.removeProperty(k));LS.set("duelSynapseAutoThemeVars","");}
+  function analyze(img){
+    const n=48,c=document.createElement("canvas");c.width=n;c.height=n;const x=c.getContext("2d",{willReadFrequently:true});
+    x.drawImage(img,0,0,n,n);const d=x.getImageData(0,0,n,n).data;
+    const bins=new Float32Array(36);let lum=0,lum2=0,cnt=0,wsum=0;
+    for(let i=0;i<d.length;i+=4){
+      const R=d[i]/255,G=d[i+1]/255,B=d[i+2]/255,mx=Math.max(R,G,B),mn=Math.min(R,G,B),v=mx,sat=mx?(mx-mn)/mx:0,l=.2126*R+.7152*G+.0722*B;
+      lum+=l;lum2+=l*l;cnt++;
+      if(sat>.2&&v>.18){let h;const df=mx-mn;if(mx===R)h=((G-B)/df)%6;else if(mx===G)h=(B-R)/df+2;else h=(R-G)/df+4;h=(h*60+360)%360;
+        const w=sat*sat*v;bins[Math.floor(h/10)%36]+=w;wsum+=w;}
+    }
+    const avg=lum/cnt,sd=Math.sqrt(Math.max(0,lum2/cnt-avg*avg));
+    const sm=bins.map((_,i)=>bins[(i+35)%36]*.5+bins[i]+bins[(i+1)%36]*.5);
+    let b1=0;for(let i=1;i<36;i++)if(sm[i]>sm[b1])b1=i;
+    let b2=-1;for(let i=0;i<36;i++){const dd=Math.min((i-b1+36)%36,(b1-i+36)%36);if(dd>=5&&(b2<0||sm[i]>sm[b2]))b2=i;}
+    const colorful=wsum>cnt*.04;
+    let h1=colorful?b1*10+5:42,h2=(colorful&&b2>=0&&sm[b2]>sm[b1]*.22)?b2*10+5:h1+150;
+    if(Math.min(Math.abs(h1-h2)%360,360-Math.abs(h1-h2)%360)<55)h2=h1+160;
+    if(!colorful){h1=42;h2=215;}
+    const sat=colorful?.82:.7;
+    const acc=hsl2rgb(h1,sat,.58),bright=hsl2rgb(h1,Math.min(1,sat+.1),.82),p1=hsl2rgb(h1,sat,.62),p2=hsl2rgb(h2,sat,.62),base=hsl2rgb(h1,.5,.055);
+    const dim=(avg>.62?.46:avg>.48?.32:avg>.34?.18:.06)+Math.min(.14,sd*.35);
+    const pan=avg>.55?.18:avg>.4?.1:0;
+    const v={"--theme-rgb":acc.join(","),"--theme-bright":bright.join(","),"--p1-rgb":p1.join(","),"--p2-rgb":p2.join(","),"--base-rgb":base.join(","),
+      "--gold":"rgb("+hsl2rgb(h1,Math.min(1,sat+.1),.66).join(",")+")","--auto-dim":dim.toFixed(3),"--auto-panel":pan.toFixed(3)};
+    setVars(v);LS.set("duelSynapseAutoThemeVars",JSON.stringify(v));
+  }
+  function theme(src){
+    if(LS.get("duelSynapseAutoTheme","on")==="off"){clearTheme();return;}
+    const img=new Image();img.onload=()=>{try{analyze(img)}catch(_){}};img.src=src;
+  }
+  if(LS.get("duelSynapseAutoTheme","on")!=="off"&&LS.get("duelSynapseWallpaper","")){
+    try{const v=JSON.parse(LS.get("duelSynapseAutoThemeVars","")||"null");if(v)setVars(v);}catch(_){}
+  }
+
+  /* ---------- alerts: emergency (X min left) and red alert (last 3 turns) ---------- */
+  let curAlert="none",bannerTimer=0,glitchTimer=0;
+  const warnMin=()=>clamp(Number(($("setWarn")&&$("setWarn").value)||5),1,60);
+  function hideBanner(){const b=$("alertBanner");if(b)b.classList.add("hidden");clearTimeout(bannerTimer);}
+  function showBanner(kind,title,text,icon,ms){
+    const b=$("alertBanner");if(!b)return;b.className="alert-banner "+kind;$("abIcon").textContent=icon;$("abTitle").textContent=title;$("abText").textContent=text;
+    const card=b.querySelector(".ab-card"),cl=card.cloneNode(true);card.replaceWith(cl);cl.querySelector("#abOk").onclick=hideBanner;
+    clearTimeout(bannerTimer);bannerTimer=setTimeout(hideBanner,ms);
+  }
+  function onAlert(lvl,prev){
+    const s=S();ambientCheck();
+    clearInterval(glitchTimer);
+    if(lvl==="red"){glitchTimer=setInterval(()=>{if(fxMode!=="full")return;const app=document.querySelector(".app");
+      app.animate([{transform:"translateX(0)",filter:"none"},{transform:"translateX("+rnd(-9,9)+"px)",filter:"hue-rotate(40deg) contrast(1.4)",offset:.3},{transform:"none",filter:"none"}],{duration:200});
+      if(Math.random()<.5){bolt(rnd(0,W),0,rnd(0,W),rnd(H*.3,H*.9),"255,120,100",14);flash("rgba(255,30,40,1)",.25,260);}},rnd(1800,3200));}
+    if(!s||!s.running||lvl==="none"){if(lvl==="none")hideBanner();return;}
+    if(lvl==="emergency"){
+      const m=warnMin();
+      showBanner("emergency",m+" MINUTE"+(m===1?"":"S")+" LEFT","Wrap up your plays. When the clock hits 00:00 each player gets 3 final turns.","⚠",7000);
+      sfx.emergency();flash("rgba(255,170,0,1)",.4,700);
+      const cx=W/2,cy=H/2;for(let k=0;k<3;k++)ring(cx,cy,12+k*3,60,6,"255,176,32",k*180);
+      for(let i=0;i<Math.round(80*mult());i++)spark(cx,cy,rnd(0,6.283),rnd(3,12),rnd(30,70),rnd(1,3),pick(["255,190,50","255,230,150"]),.05);
+    }else if(lvl==="red"){
+      showBanner("red","LAST 3 TURNS","RED ALERT. Time is up. Each player has 3 turns left to finish the duel.","!!",8000);
+      sfx.red();flash("rgba(255,0,20,1)",.7,900);
+      try{if(navigator.vibrate)navigator.vibrate(2000);}catch(_){}
+      const cx=W/2,cy=H/2;for(let k=0;k<6;k++)ring(cx,cy,14+k*2.4,70,8,k%2?"255,120,60":"255,40,50",k*140);
+      for(let i=0;i<Math.round(200*mult());i++)spark(cx,cy,rnd(0,6.283),rnd(4,16),rnd(30,90),rnd(1,3.4),pick(["255,50,50","255,140,50","255,230,200"]),.06);
+      for(let i=0;i<6;i++)bolt(rnd(0,W),0,rnd(W*.2,W*.8),rnd(H*.4,H*.8),"255,160,150",18);
+      shakeEl(document.querySelector(".app"),26,1100,1.5);
+    }
+  }
+  function clock(){
+    const s=S();if(!s)return;
+    let lvl="none";
+    if(s.phase2)lvl="red";
+    else if(!s.awaitingTurnStart&&!s.matchOver&&s.remaining>0&&s.remaining<=warnMin()*60)lvl="emergency";
+    root.classList.toggle("emergency",lvl==="emergency");
+    if(lvl!==curAlert){const prev=curAlert;curAlert=lvl;onAlert(lvl,prev);}
+  }
+
+  /* ---------- dice & coin ---------- */
+  const PIPS={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
+  const FACE_ROT={1:[0,0],6:[0,180],2:[0,-90],5:[0,90],3:[-90,0],4:[90,0]};
+  function cubeHTML(){let h='<div class="cube">';for(let f=1;f<=6;f++){h+='<div class="face f'+f+'">'+PIPS[f].map(c=>'<i class="pip" style="grid-area:'+(Math.ceil(c/3))+'/'+(((c-1)%3)+1)+'"></i>').join("")+'</div>';}return h+"</div>";}
+  function coinHTML(){let h='<div class="coin">';for(let i=-5;i<=5;i++)h+='<div class="disc rim" style="transform:translateZ('+i+'px)"></div>';
+    h+='<div class="disc face" style="transform:translateZ(6px)"><b>H</b></div><div class="disc face" style="transform:rotateX(180deg) translateZ(6px)"><b>T</b></div></div>';return h;}
+  let runId=0,trailRaf=0;
+  function throwIt(type,forced){
+    const stage=$("randomStage");if(!stage)return;
+    const my=++runId;cancelAnimationFrame(trailRaf);
+    const m=mult(),isDice=type==="dice";
+    const value=forced!=null?forced:(isDice?1+Math.floor(Math.random()*6):(Math.random()<.5?"HEADS":"TAILS"));
+    stage.className="random-stage scene t-"+type;
+    stage.innerHTML='<i class="sc-spot"></i><i class="sc-rays"></i><i class="sc-floor"></i><i class="sc-shadow"></i>'+
+      '<div class="sc-obj"><div class="sc-tilt"><div class="sc-spin">'+(isDice?cubeHTML():coinHTML())+'</div></div></div>'+
+      '<i class="sc-ring"></i><i class="sc-ring r2"></i>'+
+      '<div class="sc-result"><div class="sc-big"></div><div class="sc-sub"></div></div>';
+    const obj=stage.querySelector(".sc-obj"),spin=stage.querySelector(".sc-spin"),rays_=stage.querySelector(".sc-rays"),spot=stage.querySelector(".sc-spot"),
+      shadow=stage.querySelector(".sc-shadow"),big=stage.querySelector(".sc-big"),sub=stage.querySelector(".sc-sub"),rings=stage.querySelectorAll(".sc-ring");
+    if(isDice)stage.style.setProperty("--s",Math.round(clamp(Math.min(stage.offsetWidth*.22,stage.offsetHeight*.3),52,96))+"px");
+    else stage.style.setProperty("--cs",Math.round(clamp(Math.min(stage.offsetWidth*.26,stage.offsetHeight*.38),64,118))+"px");
+    const sr=loc(stage),H_=stage.offsetHeight,dur=isDice?2700:3200;
+    const apex=-H_*(isDice?.3:.34);
+    const full=fxMode!=="off";
+    sfx.whoosh();if(isDice)sfx.rattle(dur/1000*.62);
+    if(!full){obj.style.transform="none";}
+    /* motion */
+    const ease1="cubic-bezier(.15,.7,.3,1)",ease2="cubic-bezier(.65,0,.9,.45)";
+    if(full&&obj.animate){
+      obj.animate([
+        {transform:"translateY("+H_*.1+"px) scale(.35)",opacity:0,easing:ease1},
+        {transform:"translateY("+apex+"px) scale("+(isDice?1.55:1.9)+")",opacity:1,offset:.34,easing:ease2},
+        {transform:"translateY(0) scale(1)",offset:.62,easing:ease1},
+        {transform:"translateY(-"+H_*.07+"px) scale(1.03)",offset:.72,easing:ease2},
+        {transform:"translateY(0) scale(1)",offset:.8,easing:ease1},
+        {transform:"translateY(-"+H_*.025+"px)",offset:.88,easing:ease2},
+        {transform:"translateY(0)"}],{duration:dur,fill:"forwards"});
+      shadow.animate([{transform:"scale(.3)",opacity:.1},{transform:"scale(.55)",opacity:.25,offset:.34},{transform:"scale(1)",opacity:.7,offset:.62},{transform:"scale(.85)",opacity:.5,offset:.72},{transform:"scale(1)",opacity:.7,offset:.8},{transform:"scale(1)",opacity:.7}],{duration:dur,fill:"forwards"});
+      spot.animate([{opacity:0},{opacity:.9,offset:.2},{opacity:.5}],{duration:dur,fill:"forwards"});
+    }
+    let finalTransform;
+    if(isDice){
+      const fr=FACE_ROT[value],ex=360*(2+Math.floor(rnd(0,2))),ey=360*(2+Math.floor(rnd(0,2)));
+      finalTransform=n=>"rotateX("+(fr[0]+(n?ex:0))+"deg) rotateY("+(fr[1]+(n?ey:0))+"deg)";
+      spin.style.transform=finalTransform(false);
+      if(full&&spin.animate)spin.animate([{transform:"rotateX(-40deg) rotateY(30deg) rotateZ(20deg)"},{transform:finalTransform(true)+" rotateZ(0deg)",offset:.62},
+        {transform:"rotateX("+(fr[0]+7)+"deg) rotateY("+(fr[1]-9)+"deg)",offset:.72},{transform:finalTransform(false),offset:.8},{transform:"rotateX("+(fr[0]-2)+"deg) rotateY("+(fr[1]+3)+"deg)",offset:.88},{transform:finalTransform(false)}],{duration:dur,fill:"forwards",easing:"cubic-bezier(.25,.6,.3,1)"});
+    }else{
+      const tails=value==="TAILS",turns=360*(6+Math.floor(rnd(0,3)))+(tails?180:0);
+      finalTransform=null;spin.style.transform="rotateX("+(tails?180:0)+"deg)";
+      if(full&&spin.animate)spin.animate([{transform:"rotateX(0deg) rotateY(10deg)"},{transform:"rotateX("+turns*.82+"deg) rotateY(-12deg)",offset:.34},
+        {transform:"rotateX("+(turns+(tails?18:-18))+"deg) rotateY(6deg)",offset:.62},{transform:"rotateX("+(turns-(tails?10:-10))+"deg) rotateY(-3deg)",offset:.72},
+        {transform:"rotateX("+turns+"deg)",offset:.8},{transform:"rotateX("+(turns+(tails?3:-3))+"deg)",offset:.88},{transform:"rotateX("+turns+"deg)"}],{duration:dur,fill:"forwards",easing:"cubic-bezier(.2,.65,.3,1)"});
+    }
+    /* flight trail */
+    const t0=performance.now();
+    function trail(){
+      if(my!==runId)return;const el=performance.now()-t0;if(el>dur*.64)return;
+      if(m>0){const a=obj.getBoundingClientRect(),b=stage.getBoundingClientRect(),v=vecLocal(a.left-b.left+a.width/2,a.top-b.top+a.height/2);
+        const x=sr.x+v[0],y=sr.y+v[1];for(let i=0;i<Math.ceil(3*m);i++)spark(x+rnd(-8,8),y+rnd(-8,8),rnd(0,6.283),rnd(.3,1.6),rnd(14,30),rnd(1,2.2),isDice?pick(["255,255,255","170,200,255"]):pick(["255,226,120","255,255,255"]),.02,"dot");}
+      trailRaf=requestAnimationFrame(trail);
+    }
+    trail();
+    /* impacts */
+    const bx=sr.x+stage.offsetWidth/2,by=sr.y+H_*.56;
+    const impact=(k,big_)=>{
+      if(my!==runId)return;
+      const s=big_?1:.5,cc=isDice?"190,215,255":"255,214,100";
+      sfx.land();if(!isDice)sfx.coinRing();
+      for(let i=0;i<Math.round((40+big_*70)*m);i++)spark(bx,by-8,-Math.PI+rnd(0,3.14),rnd(2,9)*(.6+s),rnd(24,60),rnd(1,3),pick([cc,"255,255,255","255,226,120"]),.22);
+      ring(bx,by,1.6+s*2.4,34,3+s*2,cc);ring(bx,by,1+s*1.6,30,2+s,"255,255,255",90);
+      rings.forEach((r,i)=>{if(!r.animate||!full)return;r.animate([{opacity:.95,transform:"rotateX(70deg) scale(1)"},{opacity:0,transform:"rotateX(70deg) scale("+(14+big_*16)+")"}],{duration:900+i*250,delay:i*140,easing:"ease-out"});});
+      if(big_){flash("rgba(255,255,255,1)",.35,500);shakeEl(document.querySelector("#randomModal .sheet"),9,520,.4);}
+    };
+    const reveal=()=>{
+      if(my!==runId)return;
+      const label=isDice?String(value):String(value);
+      big.innerHTML=label.split("").map((ch,i)=>'<span style="animation:none">'+ch+'</span>').join("");
+      let sublabel="RESULT";
+      if(isDice)sublabel=value===6?"MAX ROLL":value===1?"LOWEST ROLL":"YOU ROLLED";else sublabel="THE COIN LANDED ON";
+      sub.textContent=sublabel;
+      if(full&&big.animate){
+        big.animate([{opacity:0,transform:"scale(3.2)",filter:"blur(18px)",letterSpacing:".6em"},{opacity:1,transform:"scale(.94)",filter:"blur(0)",letterSpacing:".06em",offset:.5},{opacity:1,transform:"scale(1)",filter:"none"}],{duration:700,fill:"forwards",easing:"cubic-bezier(.2,.9,.3,1)"});
+        sub.animate([{opacity:0,transform:"translateY(12px)"},{opacity:.95,transform:"none"}],{duration:600,delay:260,fill:"forwards"});
+        rays_.animate([{opacity:0,transform:"rotate(0)"},{opacity:isDice&&(value===6)?.9:.55,offset:.3},{opacity:.28,transform:"rotate(70deg)"}],{duration:3500,fill:"forwards",easing:"ease-out"});
+      }else{big.style.opacity=1;sub.style.opacity=.95;}
+      const sparkN=(isDice&&value===6)||(isDice&&value===1)?1:.6;
+      if(isDice&&value===6&&full){for(let i=0;i<Math.round(120*m);i++)add({k:"confetti",x:bx+rnd(-W*.3,W*.3),y:by-H_*.9,vx:rnd(-1,1),vy:rnd(1,3),l:rnd(80,140),m:140,s:rnd(3,6),c:pick(["255,226,120","120,200,255","255,255,255","255,120,180"]),g:.03,d:.99,r:rnd(0,6),vr:rnd(-.2,.2)});}
+      if(!isDice&&full){const col=value==="HEADS"?"255,226,120":"190,220,255";for(let i=0;i<Math.round(90*m*sparkN);i++)spark(bx,by-H_*.25,rnd(0,6.283),rnd(1,7),rnd(30,70),rnd(1,2.6),col,.05);}
+      if(isDice&&value===1){flash("rgba(120,0,20,1)",.3,600);}
+    };
+    if(full){
+      setTimeout(()=>impact(0,0),dur*.62);setTimeout(()=>impact(1,0),dur*.8);setTimeout(()=>impact(2,1),dur*.88);setTimeout(reveal,dur*.9);
+    }else{reveal();}
+  }
+
+  /* ---------- wire-up ---------- */
+  function init(){
+    // arena panels: sweep + hit flash + damage lag bar
+    [1,2].forEach(n=>{const p=$("p"+n);if(!p||p.querySelector(".arena-fx"))return;
+      const d=document.createElement("div");d.className="arena-fx";d.innerHTML='<i class="scan"></i><i class="flash"></i>';p.appendChild(d);
+      const bar=p.querySelector(".lpbar");if(bar&&!bar.querySelector(".lagbar")){const l=document.createElement("i");l.className="lagbar";bar.insertBefore(l,bar.firstChild);}
+      sync(n,Number(S()&&S().lp[n-1]));});
+    const rs=document.querySelector("#randomModal .sheet");if(rs)rs.id="randomSheet";
+    // settings
+    const fx=$("setFx"),sf=$("setSfx"),at=$("setAutoTheme"),wm=$("setWarn");
+    if(fx){fx.value=fxMode;fx.onchange=()=>{fxMode=fx.value;LS.set("duelSynapseFx",fxMode);applyFxClass();ambientCheck();};}
+    if(sf){sf.value=sfxOn?"on":"off";sf.onchange=()=>{sfxOn=sf.value==="on";LS.set("duelSynapseSfx",sf.value);if(sfxOn)sfx.heal(2);};}
+    if(at){at.value=LS.get("duelSynapseAutoTheme","on");at.onchange=()=>{LS.set("duelSynapseAutoTheme",at.value);
+      if(at.value==="off")clearTheme();else{const w=LS.get("duelSynapseWallpaper","");if(w)theme(w);}};}
+    if(wm){wm.value=LS.get("duelSynapseWarnMin","5");wm.addEventListener("input",()=>{LS.set("duelSynapseWarnMin",wm.value);clock();});wm.addEventListener("change",clock);}
+    const ok=$("abOk");if(ok)ok.onclick=hideBanner;
+    ambientCheck();clock();
+  }
+  window.arenaFx={lp:lpFx,sync,clock,theme,clearTheme,throwIt,init,_dbg:{flash,slam,cracks,shakeEl,sfx}};
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(init,0));else setTimeout(init,0);
+})();
+</script>
+<script>
+
+  // Orientation controller: controls both the visual layout and, when the
+  // browser permits it, the device's physical screen orientation.
+  let orientationLockState="auto";
+  // True only once the browser's native screen.orientation.lock() (or a legacy
+  // equivalent) has actually succeeded — i.e. the OS itself is holding the
+  // device in the requested orientation. When it's false, applyOrientation()
+  // falls back to a CSS rotation so the layout still matches the user's choice.
+  let nativeLockActive=false;
+
+  function applyOrientation(){
+    const layout=(typeof selectedLayout!=="undefined") ? selectedLayout : "auto";
+    const vv=window.visualViewport;
+    const w=vv ? vv.width : document.documentElement.clientWidth;
+    const h=vv ? vv.height : document.documentElement.clientHeight;
+    const actualPortrait=h>=w;
+    const portrait=layout==="portrait" ? true :
+                   layout==="landscape" ? false :
+                   actualPortrait;
+    document.documentElement.classList.toggle("is-portrait",portrait);
+    document.documentElement.classList.toggle("is-landscape",!portrait);
+    document.documentElement.dataset.orientationLock=layout;
+
+    // If we couldn't get a real OS-level orientation lock, force the visual
+    // rotation with CSS instead of waiting for the user to tilt the device.
+    const needsForceLandscape=layout==="landscape" && !nativeLockActive && actualPortrait;
+    const needsForcePortrait=layout==="portrait" && !nativeLockActive && !actualPortrait;
+    document.documentElement.classList.toggle("force-landscape",needsForceLandscape);
+    document.documentElement.classList.toggle("force-portrait",needsForcePortrait);
+  }
+
+  async function setOrientationLock(layout){
+    orientationLockState=layout||"auto";
+    const orientation=(screen && screen.orientation) ? screen.orientation : null;
+
+    // Auto releases the physical lock and returns the page to normal browser rotation.
+    if(layout==="auto"){
+      try{
+        if(orientation && typeof orientation.unlock==="function") orientation.unlock();
+        else if(screen && typeof screen.unlockOrientation==="function") screen.unlockOrientation();
+      }catch(_){}
+      // If we entered fullscreen only to enable orientation locking, leave it.
+      try{ if(document.fullscreenElement && document.exitFullscreen) await document.exitFullscreen(); }catch(_){}
+      nativeLockActive=false;
+      applyOrientation();
+      return true;
+    }
+
+    const lockValue=layout==="portrait" ? "portrait" : "landscape";
+
+    try{
+      // Chrome/Android normally permits screen.orientation.lock() only while
+      // fullscreen or in an installed PWA. Because Apply is a user gesture,
+      // request fullscreen here so the physical orientation lock can succeed.
+      if(!document.fullscreenElement && document.documentElement.requestFullscreen){
+        try{
+          await document.documentElement.requestFullscreen({navigationUI:"hide"});
+        }catch(_){
+          // Some WebViews/content:// pages reject fullscreen. Continue to the
+          // native lock attempt below in case the environment allows it anyway.
+        }
+      }
+
+      if(orientation && typeof orientation.lock==="function") {
+        await orientation.lock(lockValue);
+        nativeLockActive=true;
+        applyOrientation();
+        return true;
+      }
+
+      // Legacy Android/WebKit fallbacks.
+      if(screen && typeof screen.lockOrientation==="function") {
+        const ok=screen.lockOrientation(lockValue);
+        nativeLockActive=!!ok;
+        applyOrientation();
+        return !!ok;
+      }
+      if(screen && typeof screen.mozLockOrientation==="function") {
+        const ok=screen.mozLockOrientation(lockValue);
+        nativeLockActive=!!ok;
+        applyOrientation();
+        return !!ok;
+      }
+      if(screen && typeof screen.msLockOrientation==="function") {
+        const ok=screen.msLockOrientation(lockValue);
+        nativeLockActive=!!ok;
+        applyOrientation();
+        return !!ok;
+      }
+    }catch(err){
+      console.warn("Duel Synapse orientation lock unavailable:",err);
+    }
+
+    // No native lock API available at all (e.g. iOS Safari) — the CSS
+    // fallback in applyOrientation() will handle the visual rotation.
+    nativeLockActive=false;
+    applyOrientation();
+    return false;
+  }
+
+  applyOrientation();
+  window.addEventListener("resize",applyOrientation,{passive:true});
+  window.addEventListener("orientationchange",()=>setTimeout(applyOrientation,120),{passive:true});
+  if(window.visualViewport){
+    window.visualViewport.addEventListener("resize",applyOrientation,{passive:true});
+  }
+  // If fullscreen drops (native orientation lock normally rides on it), the
+  // native lock is gone too — fall back to the CSS rotation immediately
+  // instead of leaving the layout stuck tilted the wrong way.
+  document.addEventListener("fullscreenchange",()=>{
+    if(!document.fullscreenElement){
+      nativeLockActive=false;
+      applyOrientation();
+    }
+  },{passive:true});
+
+applyOrientation();
+if(window.visualViewport) window.visualViewport.addEventListener("resize",applyOrientation,{passive:true});
+
+  applyOrientation();
+(function(){
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+    let selectedLayout="auto";
+  try{
+    const savedLayout=localStorage.getItem("duelSynapseLayout");
+    if(savedLayout==="auto" || savedLayout==="portrait" || savedLayout==="landscape"){
+      selectedLayout=savedLayout;
+      $("setLayout").value=savedLayout;
+    }
+  }catch(_){}
+
+  const state = {
+    lpLogs:[],
+    duelHistory:[],
+    lp:[8000,8000],
+    history:[],
+    redoStack:[],
+    duelSeconds:2400,
+    extraSeconds:600,
+    remaining:2400,
+    phase2:false,
+    running:false,
+    timer:null,
+    turn:1,
+    currentPlayer:1,
+    popupPlayer:1,
+    playerNames:["Player 1","Player 2"],
+    duelNumber:1,
+    matchWins:[0,0],
+    phase2Clicks:[0,0],
+    matchOver:false,
+    pendingDuelTransition:null,
+    startingPlayer:null,
+    awaitingTurnStart:true,
+    duelStartedAt:Date.now(),
+    matchId:Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7),
+    matchStartedAt:Date.now(),
+    matchArchived:false,
+    lastThreeMusicUrl:null,
+    lastThreeMusicName:"",
+    lastThreeMusicPlaying:false,
+    turnTrackerVisible:true,
+    resultCountdownTimer:null
+  };
+  // Expose the live state for the standalone log viewer.
+  window.duelSynapseState=state;
+  // Music engine: use real Audio objects instead of the late <audio> tag so
+  // local files work reliably in standalone/offline mode.
+  const bgMusic = new Audio();
+  bgMusic.preload = "auto";
+  bgMusic.loop = true;
+  bgMusic.volume = 0.72;
+
+  const lastThreeAudio = new Audio();
+  lastThreeAudio.preload = "auto";
+  lastThreeAudio.loop = true;
+  lastThreeAudio.volume = 0.82;
+
+  state.musicUrl = null;
+  state.musicName = "";
+  state.musicPlaying = false;
+  state.musicUnlocked = false;
+
+  function updateMusicButtons(){
+    const bg=$("musicToggle");
+    const l3=$("lastThreeMusicToggle");
+    if(bg) bg.textContent = state.musicPlaying && !state.phase2 ? "❚❚" : "▶";
+    if(l3) l3.textContent = state.lastThreeMusicPlaying ? "❚❚" : "▶";
+  }
+
+  function stopBackgroundMusic(resetPosition=true){
+    try{
+      bgMusic.pause();
+      if(resetPosition) bgMusic.currentTime=0;
+    }catch(_){}
+    state.musicPlaying=false;
+    updateMusicButtons();
+  }
+
+  async function playBackgroundMusic(){
+    if(!state.musicUrl)return false;
+    try{
+      if(bgMusic.src!==state.musicUrl) bgMusic.src=state.musicUrl;
+      await bgMusic.play();
+      state.musicPlaying=true;
+      state.musicUnlocked=true;
+      updateMusicButtons();
+      return true;
+    }catch(err){
+      state.musicPlaying=false;
+      updateMusicButtons();
+      console.warn("Duel Synapse background music could not start:",err);
+      return false;
+    }
+  }
+
+  function stopLastThreeMusic(resetPosition=true){
+    try{
+      lastThreeAudio.pause();
+      if(resetPosition) lastThreeAudio.currentTime=0;
+    }catch(_){}
+    state.lastThreeMusicPlaying=false;
+    updateMusicButtons();
+  }
+
+  async function playLastThreeMusic(){
+    if(!state.lastThreeMusicUrl)return false;
+    try{
+      if(lastThreeAudio.src!==state.lastThreeMusicUrl) lastThreeAudio.src=state.lastThreeMusicUrl;
+      await lastThreeAudio.play();
+      state.lastThreeMusicPlaying=true;
+      state.musicUnlocked=true;
+      updateMusicButtons();
+      return true;
+    }catch(err){
+      state.lastThreeMusicPlaying=false;
+      updateMusicButtons();
+      console.warn("Duel Synapse Last 3 Turns music could not start:",err);
+      return false;
+    }
+  }
+
+  function enterLastThreeMusic(){
+    // Remember whether normal BGM was actually playing. If there is no special
+    // Last 3 Turns track, do not unexpectedly start music that the user paused.
+    const wasBackgroundPlaying=state.musicPlaying;
+    stopBackgroundMusic(false);
+    stopLastThreeMusic(false);
+    if(state.lastThreeMusicUrl){
+      playLastThreeMusic();
+    }else if(wasBackgroundPlaying && state.musicUrl){
+      playBackgroundMusic();
+    }
+  }
+
+  function leaveLastThreeMusic(){
+    stopLastThreeMusic();
+    if(state.musicUrl && state.musicPlaying!==true) playBackgroundMusic();
+  }
+
+  // Mobile browsers can reject a later automatic play() as autoplay. A silent
+  // one-time prime during the user's first interaction unlocks the media element
+  // without producing audible music.
+  async function primeMusicAudio(){
+    try{
+      const probe = state.musicUrl ? bgMusic : lastThreeAudio;
+      if(!probe.src){
+        return false;
+      }
+      const oldMuted=probe.muted, oldVolume=probe.volume;
+      probe.muted=true;
+      probe.volume=0;
+      await probe.play();
+      probe.pause();
+      probe.currentTime=0;
+      probe.muted=oldMuted;
+      probe.volume=oldVolume;
+      state.musicUnlocked=true;
+    }catch(_){
+      // A normal explicit Play click can still unlock playback later.
+    }
+  }
+
+  document.addEventListener("pointerdown",primeMusicAudio,{capture:true,passive:true,once:true});
+
+
+
+  function fmt(n){return Math.max(0,Math.round(n)).toLocaleString();}
+  function snapshotState(){
+    return {
+      lp:[...state.lp],remaining:state.remaining,phase2:state.phase2,
+      turn:state.turn,currentPlayer:state.currentPlayer,startingPlayer:state.startingPlayer,awaitingTurnStart:state.awaitingTurnStart,
+      phase2Clicks:[...state.phase2Clicks],
+      lpLogLength:state.lpLogs.length
+    };
+  }
+  function save(){
+    state.history.push(snapshotState());
+    if(state.history.length>100)state.history.shift();
+    // A fresh action invalidates any redo trail — standard undo/redo semantics.
+    if(state.redoStack.length) state.redoStack=[];
+    if(typeof refreshUndoRedoButtons==="function") refreshUndoRedoButtons();
+  }
+
+  function updateLPBar(player,value){
+    const bar=$("lpFill"+player);if(!bar)return;
+    const max=Math.max(1,Number($("setLP")&&$("setLP").value)||8000);
+    bar.style.width=Math.max(0,Math.min(100,value/max*100))+"%";
+    if(window.arenaFx&&window.arenaFx.sync)window.arenaFx.sync(player,value);
+  }
+
+  function renderLP(player, animate){
+    const el=$("lp"+player), target=Math.max(0,state.lp[player-1]);
+    const start=Number(el.dataset.value || target);
+    if(el._raf) cancelAnimationFrame(el._raf);
+    if(!animate || start===target){
+      el.textContent=fmt(target);el.dataset.value=String(target);
+      el.classList.toggle("low",target<=2000);updateLPBar(player,target);return;
+    }
+    el.classList.add("counting");
+    const begin=performance.now(), diff=target-start;
+    const duration=Math.min(1400,Math.max(280,Math.abs(diff)*.2));
+    function step(now){
+      const t=Math.min(1,(now-begin)/duration), e=1-Math.pow(1-t,3);
+      const value=Math.round(start+diff*e);
+      el.textContent=fmt(value);el.dataset.value=String(value);
+      el.classList.toggle("low",value<=2000);updateLPBar(player,value);
+      if(t<1) el._raf=requestAnimationFrame(step);
+      else {el.textContent=fmt(target);el.dataset.value=String(target);el.classList.remove("counting");}
+    }
+    el._raf=requestAnimationFrame(step);
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+  }
+
+  function renderTurn(){
+    $("turnTracker").classList.toggle("hidden", state.turnTrackerVisible === false);
+    if(state.awaitingTurnStart){
+      $("turnContext").innerHTML =
+        '<span class="turn-main">Duel '+state.duelNumber+': Turn 1</span>' +
+        '<span class="turn-starter">· '+escapeHtml(state.playerNames[state.currentPlayer-1])+' starts</span>';
+    }else{
+      $("turnContext").innerHTML =
+        '<span class="turn-main">Duel '+state.duelNumber+': Turn '+state.turn+'</span>';
+    }
+    $("p1").classList.toggle("current",state.currentPlayer===1);
+    $("p2").classList.toggle("current",state.currentPlayer===2);
+    $("edgeTurn1").classList.toggle("active",state.currentPlayer===1);
+    $("edgeTurn2").classList.toggle("active",state.currentPlayer===2);
+    $("mark1").classList.toggle("hidden",state.currentPlayer!==1);
+    $("mark2").classList.toggle("hidden",state.currentPlayer!==2);
+    $("edgeTurn1").disabled=state.phase2 && state.phase2Clicks[0]>=3;
+    $("edgeTurn2").disabled=state.phase2 && state.phase2Clicks[1]>=3;
+    $("edgeTurn1").setAttribute("aria-label","End Phase P1 · "+state.phase2Clicks[0]+"/3");
+    $("edgeTurn2").setAttribute("aria-label","End Phase P2 · "+state.phase2Clicks[1]+"/3");
+    $("turnBtn").title="Turn "+state.turn+" · "+state.playerNames[state.currentPlayer-1];
+
+    const score1=$("playerScore1"),score2=$("playerScore2");
+    if(score1){
+      score1.querySelector("strong").textContent=String(state.matchWins[0]);
+      score1.setAttribute("aria-label",state.playerNames[0]+" wins: "+state.matchWins[0]);
+    }
+    if(score2){
+      score2.querySelector("strong").textContent=String(state.matchWins[1]);
+      score2.setAttribute("aria-label",state.playerNames[1]+" wins: "+state.matchWins[1]);
+    }
+
+    $("playerBadge1").textContent="P1";
+    $("playerBadge2").textContent="P2";
+    document.querySelector("#p1 .pname").textContent=state.playerNames[0];
+    document.querySelector("#p2 .pname").textContent=state.playerNames[1];
+    $("playerBadge1").title="Rename "+state.playerNames[0];
+    $("playerBadge2").title="Rename "+state.playerNames[1];
+    document.documentElement.classList.toggle("last-three",state.phase2);
+    [1,2].forEach(n=>{const f=$("setName"+n);if(f&&document.activeElement!==f)f.value=state.playerNames[n-1];});
+    const w1=$("winnerP1"),w2=$("winnerP2"),s1=$("starterP1"),s2=$("starterP2");
+    if(w1)w1.textContent=state.playerNames[0];if(w2)w2.textContent=state.playerNames[1];
+    if(s1)s1.textContent=state.playerNames[0];if(s2)s2.textContent=state.playerNames[1];
+  }
+
+  function renderClock(){
+    const m=Math.floor(state.remaining/60).toString().padStart(2,"0");
+    const s=(state.remaining%60).toString().padStart(2,"0");
+    $("clock").textContent=m+":"+s;
+    $("phase").textContent=state.phase2 ?
+      "TIME EXPIRED · LAST 3 TURNS · "+Math.max(0,3-state.phase2Clicks[0])+"/"+Math.max(0,3-state.phase2Clicks[1]) :
+      "DUEL "+state.duelNumber+" · "+Math.round(state.duelSeconds/60)+" MINUTES";
+    const fill=$("timeFill");
+    if(fill)fill.style.width=(state.phase2?100:Math.max(0,Math.min(100,state.remaining/Math.max(1,state.duelSeconds)*100)))+"%";
+    $("clock").classList.toggle("warning",state.remaining<=300 && state.remaining>60);
+    $("clock").classList.toggle("danger",state.remaining<=60);
+    if(window.arenaFx&&window.arenaFx.clock)window.arenaFx.clock();
+  }
+
+  function tick(){
+    if(!state.running)return;
+    if(state.remaining>0)state.remaining--;
+    renderClock();
+    if(state.remaining===0){
+      if(!state.phase2){
+        state.phase2=true;
+        state.remaining=state.extraSeconds;
+        state.phase2Clicks=[0,0];
+        renderClock();renderTurn();
+        enterLastThreeMusic();
+      }else{
+        endThirdDuelByTime();
+      }
+    }
+  }
+
+  function startDuelBackgroundMusic(){
+    // Automatically start the selected background track when the duel begins.
+    // This is invoked from the user's timer/turn interaction so mobile browsers
+    // are allowed to start the audio. Last 3 Turns music remains separate.
+    if(state.musicUrl && !state.phase2 && !state.musicPlaying){
+      playBackgroundMusic();
+    }
+  }
+
+  function toggleTimer(){
+    if(state.awaitingTurnStart){
+      showMatchNotice(
+        "TURN 1 NOT STARTED",
+        "The highlighted player must press their End Phase button first to confirm who starts the duel.",
+        "TURN ORDER"
+      );
+      return;
+    }
+    if(state.running){
+      state.running=false;clearInterval(state.timer);state.timer=null;$("startPause").textContent="▶";
+    }else{
+      state.running=true;state.timer=setInterval(tick,1000);$("startPause").textContent="❚❚";
+      startDuelBackgroundMusic();
+    }
+  }
+
+  function changeLP(player,delta,meta={}){
+    const p=Number(player), d=Number(delta);
+    if((p!==1 && p!==2) || !Number.isFinite(d) || d===0)return;
+    const before=Number(state.lp[p-1]);
+    const after=Math.max(0,before+d);
+    const actual=after-before;
+    if(actual===0)return;
+
+    save();
+    state.lp[p-1]=after;
+
+    if(!Array.isArray(state.lpLogs)) state.lpLogs=[];
+    if(!window.duelSynapseState) window.duelSynapseState=state;
+    state.lpLogs.push({
+      player:p,
+      before:before,
+      after:after,
+      delta:actual,
+      turn:Number(state.turn||1),
+      timestamp:Date.now(),
+      label:meta.label || (actual>0 ? "Life Points gained" : "Life Points lost"),
+      type:meta.type || (actual>0 ? "gain" : "loss")
+    });
+
+    renderLP(p,true);
+    if(window.arenaFx&&window.arenaFx.lp)window.arenaFx.lp(p,before,after,actual);
+    persistMatchData();
+    if(typeof updateLPLogs==="function") updateLPLogs();
+  }
+
+  function reset(){
+    cancelResultCountdown();
+    stopLastThreeMusic();
+    stopBackgroundMusic();
+    state.running=false;
+    if(state.timer)clearInterval(state.timer);
+    state.timer=null;
+    state.lp=[Number($("setLP").value)||8000,Number($("setLP").value)||8000];
+    state.duelSeconds=(Number($("setDuel").value)||40)*60;
+    state.extraSeconds=(Number($("setExtra").value)||10)*60;
+    state.remaining=state.duelSeconds;
+    state.phase2=false;
+    state.turn=1;
+    state.currentPlayer=1;
+    state.startingPlayer=null;
+    state.awaitingTurnStart=true;
+    state.history=[];state.redoStack=[];if(typeof refreshUndoRedoButtons==="function")refreshUndoRedoButtons();
+    state.phase2Clicks=[0,0];
+    state.duelStartedAt=Date.now();
+    $("startPause").textContent="▶";
+    renderLP(1,false);renderLP(2,false);renderClock();renderTurn();
+    persistMatchData();
+  }
+
+
+  function duelVictoryType(forcedWinner=null, manualConcession=false){
+    if(manualConcession)return "Overwhelm (Opponent Conceded)";
+    const p1=Math.max(0,Number(state.lp[0])||0);
+    const p2=Math.max(0,Number(state.lp[1])||0);
+    if(p1===p2)return "Draw/Double Loss";
+    if(p1===0 || p2===0)return "Direct Attack/Burn";
+    return "LP Difference";
+  }
+
+  function winnerFromLP(){
+    const p1=Math.max(0,Number(state.lp[0])||0);
+    const p2=Math.max(0,Number(state.lp[1])||0);
+    if(p1===p2)return 0;
+    if(p1===0)return 2;
+    if(p2===0)return 1;
+    return p1>p2?1:2;
+  }
+
+  function winnerFromMatchScore(){
+    if(state.matchWins[0]===state.matchWins[1])return 0;
+    return state.matchWins[0]>state.matchWins[1]?1:2;
+  }
+
+  function persistMatchData(){
+    try{
+      localStorage.setItem("duelSynapseMatchData",JSON.stringify({
+        playerNames:state.playerNames,
+        duelHistory:state.duelHistory,
+        lpLogs:state.lpLogs,
+        duelNumber:state.duelNumber,
+        matchWins:state.matchWins,
+        matchId:state.matchId,
+        matchStartedAt:state.matchStartedAt,
+        savedAt:Date.now()
+      }));
+    }catch(_){}
+  }
+
+  function getMatchArchive(){
+    try{
+      const x=JSON.parse(localStorage.getItem("duelSynapseMatchArchive")||"[]");
+      return Array.isArray(x)?x:[];
+    }catch(_){return []}
+  }
+
+  function saveMatchArchive(list){
+    try{localStorage.setItem("duelSynapseMatchArchive",JSON.stringify(list));}catch(_){}
+  }
+
+  function archiveFinishedMatch(){
+    if(state.matchArchived)return;
+    const archive=getMatchArchive();
+    const record={
+      id:state.matchId,
+      startedAt:state.matchStartedAt,
+      endedAt:Date.now(),
+      players:[...state.playerNames],
+      score:[...state.matchWins],
+      winner:state.matchWins[0]===state.matchWins[1] ? 0 : (state.matchWins[0]>state.matchWins[1]?1:2),
+      victoryType:state.matchWins[0]===state.matchWins[1] ? "Draw" : "Most game wins",
+      duels:(state.duelHistory||[]).map(d=>({
+        duel:d.duel,
+        winner:d.winner,
+        winnerName:d.winner?state.playerNames[d.winner-1]:d.winnerName,
+        victoryType:d.victoryType||"Draw",
+        finalLP:[...(d.finalLP||[0,0])],
+        startingPlayer:d.startingPlayer||null,
+        startingPlayerName:d.startingPlayer?state.playerNames[d.startingPlayer-1]:(d.startingPlayerName||"Not recorded"),
+        reason:d.reason||"",
+        logs:[...(d.logs||[])]
+      }))
+    };
+    archive.unshift(record);
+    saveMatchArchive(archive);
+    state.matchArchived=true;
+  }
+
+  function renderMatchHistory(){
+    const list=$("matchHistoryList");
+    if(!list)return;
+    const archive=getMatchArchive();
+    if(!archive.length){
+      list.innerHTML='<div class="history-empty">No completed matches yet.</div>';
+      return;
+    }
+    list.innerHTML=archive.map((m,i)=>{
+      const me=state.playerNames[0];
+      const p1=escapeHtml(m.players?.[0]||"Player 1");
+      const p2=escapeHtml(m.players?.[1]||"Player 2");
+      const score=(m.score||[0,0]).join("–");
+      const winner=m.winner===0 ? 0 : m.winner;
+      const result=winner===0 ? "DRAW" : "WINNER: "+escapeHtml(m.players?.[winner-1]||"");
+      const victoryType=m.victoryType||"Most game wins";
+      const cls=winner===0?"draw":(m.players?.[0]===me ? (winner===1?"win":"loss") : (winner===2?"win":"loss"));
+      const date=new Date(m.endedAt||Date.now()).toLocaleString();
+      return `<div class="history-card">
+        <div class="history-main">
+          <div class="history-match">Match ${archive.length-i} · ${p1} vs ${p2}</div>
+          <div class="history-opponent">Opponent: ${p2} · ${date}</div>
+          <div class="history-result ${cls}">${result} · Score ${score}</div>
+          <div class="history-victory-type">Match result: ${victoryType}</div>
+        </div>
+        <div class="history-actions">
+          <button class="history-more" type="button" data-history-id="${m.id}">More details</button>
+          <button class="history-delete" type="button" data-history-delete="${m.id}" title="Delete this match history">Delete</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  function deleteMatchHistory(id){
+    const archive=getMatchArchive();
+    const match=archive.find(x=>x.id===id);
+    if(!match)return;
+    const players=(match.players||["Player 1","Player 2"]).join(" vs ");
+    const date=new Date(match.endedAt||Date.now()).toLocaleString();
+    if(!confirm("Delete this match history?\n\n"+players+"\n"+date+"\n\nThis cannot be undone."))return;
+    const next=archive.filter(x=>x.id!==id);
+    saveMatchArchive(next);
+    renderMatchHistory();
+    if($("matchDetailModal") && !$('matchDetailModal').classList.contains("hidden")){
+      $("matchDetailModal").classList.add("hidden");
+    }
+  }
+
+  function openMatchHistory(){
+    renderMatchHistory();
+    $("matchHistoryModal").classList.remove("hidden");
+  }
+
+  function closeMatchHistory(){
+    $("matchHistoryModal").classList.add("hidden");
+  }
+
+  $("matchHistoryClose")?.addEventListener("click",closeMatchHistory);
+  $("matchHistoryModal")?.addEventListener("click",e=>{
+    if(e.target===e.currentTarget) closeMatchHistory();
+  });
+
+  function closeMatchDetails(){
+    $("matchDetailModal").classList.add("hidden");
+  }
+
+  $("matchDetailClose")?.addEventListener("click",closeMatchDetails);
+  $("matchDetailCopy")?.addEventListener("click",async()=>{
+    const text=window.duelSynapseMatchSummaryText||"";
+    const btn=$("matchDetailCopy");
+    try{
+      if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      else throw new Error("no clipboard api");
+      if(btn){const old=btn.textContent;btn.textContent="Copied";setTimeout(()=>{btn.textContent=old;},1400);}
+    }catch(_){
+      if(btn){const old=btn.textContent;btn.textContent="Copy failed";setTimeout(()=>{btn.textContent=old;},1600);}
+    }
+  });
+  $("matchDetailModal")?.addEventListener("click",e=>{
+    if(e.target===e.currentTarget) closeMatchDetails();
+  });
+
+  function openMatchDetails(id){
+    const match=getMatchArchive().find(x=>x.id===id);
+    if(!match)return;
+    const detailNames=match.players||["Player 1","Player 2"];
+    $("matchDetailTitle").textContent=detailNames.join(" vs ");
+    const matchWinnerName=match.winner ? (match.players?.[match.winner-1]||"Winner") : "Draw";
+    $("matchDetailSubtitle").textContent=
+      "Score "+(match.score||[0,0]).join("–")+" · "+matchWinnerName+" · "+(match.victoryType||"Most game wins")+" · "+new Date(match.endedAt||Date.now()).toLocaleString();
+    const body=$("matchDetailBody");
+    body.innerHTML=(match.duels||[]).map(d=>{
+      const starter=d.startingPlayerName||"Not recorded";
+      const logs=(d.logs||[]).map(l=>{
+        const t=new Date(l.timestamp||Date.now()).toLocaleTimeString();
+        const sign=Number(l.delta)>0?"+":"−";
+        return `<div class="detail-log">
+          <div>Turn ${l.turn}</div>
+          <div><span class="detail-log-change">${escapeHtml(detailNames[l.player-1]||("P"+l.player))} ${sign}${Math.abs(Number(l.delta)).toLocaleString()}</span><br>${Number(l.before).toLocaleString()} → ${Number(l.after).toLocaleString()} · ${l.label||"LP change"}</div>
+          <div class="detail-log-time">${t}</div>
+        </div>`;
+      }).join("") || '<div class="history-empty">No LP changes recorded.</div>';
+      return `<section class="detail-duel">
+        <div class="detail-duel-title">Duel ${d.duel} · ${escapeHtml(d.winnerName||"Draw")}</div>
+        <div class="detail-meta"><strong>Victory: ${d.victoryType||"Draw"}</strong> · Started by: ${escapeHtml(starter)} · Final LP: ${d.finalLP?.[0]||0} – ${d.finalLP?.[1]||0}</div>
+        ${d.reason?`<div class="detail-meta">${d.reason}</div>`:""}
+        ${logs}
+      </section>`;
+    }).join("") || '<div class="history-empty">No duel details recorded.</div>';
+    $("matchDetailModal").classList.remove("hidden");
+
+    // Plain-text recap for the copy/share action below.
+    const names=match.players||["Player 1","Player 2"];
+    const lines=[
+      names.join(" vs "),
+      "Score "+(match.score||[0,0]).join("–")+" · "+matchWinnerName+" · "+(match.victoryType||"Most game wins"),
+      new Date(match.endedAt||Date.now()).toLocaleString(),
+      ""
+    ];
+    (match.duels||[]).forEach(d=>{
+      lines.push("Duel "+d.duel+": "+(d.winnerName||"Draw")+" ("+(d.victoryType||"Draw")+") — Final LP "+(d.finalLP?.[0]||0)+" – "+(d.finalLP?.[1]||0));
+    });
+    window.duelSynapseMatchSummaryText=lines.join("\n");
+  }
+
+  function startNewMatch(){
+    cancelResultCountdown();
+    stopLastThreeMusic();
+    stopBackgroundMusic();
+    if(state.timer)clearInterval(state.timer);
+    state.timer=null;
+    state.running=false;
+    state.matchOver=false;
+    state.matchArchived=false;
+    state.matchId=Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7);
+    state.matchStartedAt=Date.now();
+    state.duelHistory=[];
+    state.lpLogs=[];
+    state.matchWins=[0,0];
+    state.duelNumber=1;
+    state.lp=[Number($("setLP").value)||8000,Number($("setLP").value)||8000];
+    state.duelSeconds=(Number($("setDuel").value)||40)*60;
+    state.extraSeconds=(Number($("setExtra").value)||10)*60;
+    state.remaining=state.duelSeconds;
+    state.phase2=false;
+    state.turn=1;
+    state.currentPlayer=1;
+    state.startingPlayer=null;
+    state.awaitingTurnStart=true;
+    state.phase2Clicks=[0,0];
+    state.history=[];state.redoStack=[];if(typeof refreshUndoRedoButtons==="function")refreshUndoRedoButtons();
+    state.pendingDuelTransition=null;
+    state.duelStartedAt=Date.now();
+    $("startPause").textContent="▶";
+    renderLP(1,false);renderLP(2,false);renderTurn();renderClock();
+    persistMatchData();
+    if(typeof updateLPLogs==="function")updateLPLogs();
+  }
+
+  function finalizeCurrentDuel(reason,victoryType=null,forcedWinner=null){
+    const winner=forcedWinner===null ? winnerFromLP() : Number(forcedWinner)||0;
+    const type=victoryType || duelVictoryType(forcedWinner,false);
+    const record={
+      duel:state.duelNumber,
+      startingPlayer:state.startingPlayer,
+      startingPlayerName:state.startingPlayer?state.playerNames[state.startingPlayer-1]:"Not started",
+      winner:winner,
+      winnerName:winner?state.playerNames[winner-1]:"Draw",
+      victoryType:type,
+      finalLP:[...state.lp],
+      logs:[...(state.lpLogs||[])],
+      startedAt:state.duelStartedAt,
+      endedAt:Date.now(),
+      reason:reason||type
+    };
+    state.duelHistory.push(record);
+    if(winner)state.matchWins[winner-1]++;
+    persistMatchData();
+    return winner;
+  }
+
+  function showMatchNotice(title,text,kicker="MATCH"){
+    $("noticeKicker").textContent=kicker;
+    $("noticeTitle").textContent=title;
+    $("noticeText").textContent=text;
+    $("matchNoticeModal").classList.remove("hidden");
+  }
+
+  function showNextDuelConfirmation(nextDuel,winner){
+    const loser=winner===1?2:(winner===2?1:0);
+    const loserName=loser?state.playerNames[loser-1]:"Either player";
+    state.pendingDuelTransition.nextStarter=null;
+    state.pendingDuelTransition.loser=loser;
+
+    $("nextDuelTitle").textContent="Start Duel "+nextDuel+"?";
+    let resultText;
+    if(winner===0){
+      resultText="Duel "+state.duelNumber+" is a TIE at "+fmt(state.lp[0])+" LP.";
+    }else{
+      resultText=state.playerNames[winner-1]+" wins Duel "+state.duelNumber+".";
+    }
+
+    $("nextDuelText").textContent=
+      resultText+" This action overrides the current timer and remaining turns."+
+      " Choose the recorded winner (use this for a concession if needed), then choose who starts Duel "+nextDuel+".";
+
+    // Reuse the confirmation panel and dynamically provide two starter choices.
+    const actions=$("nextDuelModal").querySelector(".actions");
+    actions.innerHTML=
+      '<div class="next-duel-choice-group"><span>Who won this duel?</span>'+
+      '<button class="action-btn" id="winnerP1" type="button" title="Player 1 wins">'+escapeHtml(state.playerNames[0])+'</button>'+
+      '<button class="action-btn" id="winnerP2" type="button" title="Player 2 wins">'+escapeHtml(state.playerNames[1])+'</button></div>'+
+      '<div class="next-duel-choice-group"><span>Who starts the next duel?</span>'+
+      '<button class="action-btn" id="starterP1" type="button" title="Player 1 starts">'+escapeHtml(state.playerNames[0])+'</button>'+
+      '<button class="action-btn" id="starterP2" type="button" title="Player 2 starts">'+escapeHtml(state.playerNames[1])+'</button></div>'+
+      '<button class="action-btn" id="nextDuelCancel" type="button">Cancel</button>'+
+      '<button class="action-btn primary" id="nextDuelConfirm" type="button" disabled>Confirm</button>';
+
+    state.pendingDuelTransition.winner=winner||0;
+    state.pendingDuelTransition.nextStarter=null;
+    // Pre-highlight the automatically-determined LP result so it's clear
+    // what will be recorded if the user doesn't override it below.
+    if(winner===1)$("winnerP1").classList.add("selected");
+    if(winner===2)$("winnerP2").classList.add("selected");
+
+    // Starter selection is intentionally unrestricted. The losing player
+    // may choose, but either player can be selected as the next starter.
+    // This also allows a winner who prefers to go second to choose the loser.
+    $("starterP1").disabled=false;
+    $("starterP2").disabled=false;
+    $("starterP1").title="Player 1 starts";
+    $("starterP2").title="Player 2 starts";
+
+    const chooseWinner=(p)=>{
+      state.pendingDuelTransition.winner=p;
+      // Manually picking a winner here is always a concession, regardless of
+      // the actual LP totals — record it as such rather than the LP-based type.
+      state.pendingDuelTransition.manualWinnerOverride=true;
+      state.pendingDuelTransition.victoryType="Overwhelm (Opponent Conceded)";
+      state.pendingDuelTransition.reason="Player-conceded Duel "+state.duelNumber;
+      $("winnerP1").classList.toggle("selected",p===1);
+      $("winnerP2").classList.toggle("selected",p===2);
+      $("nextDuelConfirm").disabled=!(state.pendingDuelTransition.winner && state.pendingDuelTransition.nextStarter);
+    };
+    const choose=(p)=>{
+      state.pendingDuelTransition.nextStarter=p;
+      $("starterP1").classList.toggle("selected",p===1);
+      $("starterP2").classList.toggle("selected",p===2);
+      $("nextDuelConfirm").disabled=!(state.pendingDuelTransition.winner && state.pendingDuelTransition.nextStarter);
+    };
+    $("winnerP1").onclick=()=>chooseWinner(1);
+    $("winnerP2").onclick=()=>chooseWinner(2);
+    $("starterP1").onclick=()=>choose(1);
+    $("starterP2").onclick=()=>choose(2);
+    $("nextDuelCancel").onclick=()=>{
+      $("nextDuelModal").classList.add("hidden");
+      state.pendingDuelTransition=null;
+    };
+    $("nextDuelConfirm").onclick=()=>{
+      if(!state.pendingDuelTransition.nextStarter)return;
+      startNextDuel();
+    };
+    $("nextDuelModal").classList.remove("hidden");
+  }
+
+  function startNextDuel(){
+    // NEXT DUEL IS AN OVERRIDE: it immediately ends the current duel, even
+    // during Last 3 Turns, during its countdown, or before all turns are used.
+    cancelResultCountdown();
+    const wasRunning=!!state.running;
+    if(state.timer)clearInterval(state.timer);
+    state.timer=null;
+    state.running=false;
+    $("nextDuelModal").classList.add("hidden");
+
+    if(state.matchOver){
+      startNewMatch();
+      return;
+    }
+    const pending=state.pendingDuelTransition;
+    if(!pending)return;
+
+    const winner=finalizeCurrentDuel(pending.reason,pending.victoryType||duelVictoryType(),pending.winner);
+    state.pendingDuelTransition=null;
+
+    if(state.matchWins[0]>=2 || state.matchWins[1]>=2){
+      finishMatch(
+        state.matchWins[0]>=2?1:2,
+        pending.reason+" · 2 wins reached"
+      );
+      return;
+    }
+
+    if(state.duelNumber>=3){
+      // The match result is ALWAYS determined by the number of duel wins,
+      // not by the final duel's LP result. A tied Duel 3 can still produce
+      // a match winner if the overall score is not tied.
+      const matchWinner=winnerFromMatchScore();
+      finishMatch(
+        matchWinner,
+        pending.reason+" · Final match score "+state.matchWins.join("–")
+      );
+      return;
+    }
+
+    state.duelNumber++;
+    state.lpLogs=[];
+    state.lp=[
+      Number($("setLP").value)||8000,
+      Number($("setLP").value)||8000
+    ];
+    state.turn=1;
+
+    // The selected starter begins a fresh duel, but the match clock is
+    // cumulative across all duels in the match — it only resets when the
+    // whole match ends (finishMatch/startNewMatch), not between duels.
+    // Ending Duel 1 early should never hand Duel 2 a brand-new full timer;
+    // that made reaching Last 3 Turns on time-remaining nearly impossible.
+    state.startingPlayer=Number(pending.nextStarter)||1;
+    state.currentPlayer=state.startingPlayer;
+    state.awaitingTurnStart=false;
+    // Don't force phase2 (Last 3 Turns) back off here: if the match clock had
+    // already run out and Duel 1 ended mid-bonus-countdown, Duel 2 correctly
+    // starts already inside that same Last 3 Turns window instead of getting
+    // relabeled as a fresh full-length duel. Only the per-duel turn counter
+    // for Last 3 Turns resets, since that tracks turns within THIS duel.
+    state.phase2Clicks=[0,0];
+    state.history=[];state.redoStack=[];if(typeof refreshUndoRedoButtons==="function")refreshUndoRedoButtons();
+    state.duelStartedAt=Date.now();
+
+    stopLastThreeMusic();
+    renderLP(1,false);
+    renderLP(2,false);
+    renderTurn();
+    renderClock();
+    persistMatchData();
+    if(typeof updateLPLogs==="function")updateLPLogs();
+
+    // If the cumulative match clock is already in Last 3 Turns, restore the
+    // dedicated track after the new duel is created.
+    if(state.phase2) enterLastThreeMusic();
+
+    if(wasRunning){
+      state.running=true;
+      state.timer=setInterval(tick,1000);
+      $("startPause").textContent="❚❚";
+    }else{
+      $("startPause").textContent="▶";
+    }
+  }
+
+  function finishMatch(winner, reason){
+    stopLastThreeMusic();
+    stopBackgroundMusic();
+    state.running=false;
+    if(state.timer)clearInterval(state.timer);
+    state.timer=null;
+    state.matchOver=true;
+    state.pendingDuelTransition=null;
+    $("startPause").textContent="▶";
+
+    // Archive the complete match once, including all duel LP logs.
+    archiveFinishedMatch();
+    persistMatchData();
+    renderTurn();
+    renderClock();
+
+    if(!winner){
+      showMatchNotice(
+        "MATCH DRAW",
+        "The match ended without a winner."+ (reason ? "\n\n"+reason : "")+
+        "\n\nThe match has been saved to Match History.",
+        "MATCH RESULT"
+      );
+      return;
+    }
+    const name=state.playerNames[winner-1];
+    showMatchNotice(
+      name+" WINS THE MATCH",
+      name+" has won the match with a " + state.matchWins[winner-1]+"–"+state.matchWins[winner===1?1:0]+" game score."+
+        (reason ? "\n\n"+reason : "")+
+        "\n\nThe match has been saved to Match History.",
+      "MATCH WINNER"
+    );
+  }
+
+  function cancelResultCountdown(){
+    if(state.resultCountdownTimer){
+      clearInterval(state.resultCountdownTimer);
+      state.resultCountdownTimer=null;
+    }
+  }
+
+  function endThirdDuelByTime(){
+    cancelResultCountdown();
+    state.running=false;
+    if(state.timer)clearInterval(state.timer);
+    state.timer=null;
+    $("startPause").textContent="▶";
+    // Give the players the requested 10-second result delay. The Next Duel
+    // control can override this countdown at any time.
+    showMatchNotice("TIME EXPIRED","Last 3 turns are complete. Determining the winner in 10 seconds…","LAST 3 TURNS");
+    let left=10;
+    $("noticeText").textContent="Last 3 turns are complete. Determining the winner in "+left+" seconds…";
+    state.resultCountdownTimer=setInterval(()=>{
+      left--;
+      $("noticeText").textContent=left>0 ?
+        "Last 3 turns are complete. Determining the winner in "+left+" seconds…" :
+        "Determining winner…";
+      if(left<=0){
+        cancelResultCountdown();
+        $("matchNoticeModal").classList.add("hidden");
+        finalizeCurrentDuel("Last 3 Turns / Timer",duelVictoryType());
+        finishMatch(winnerFromMatchScore(),"Last 3 Turns / Timer · Final match score "+state.matchWins.join("–"));
+      }
+    },1000);
+  }
+
+  function resetDuelButton(){
+    if(state.matchOver){
+      showMatchNotice(
+        "NEW MATCH?",
+        "The previous match is already saved in Match History. Confirm to begin a new match.",
+        "NEW MATCH"
+      );
+      const oldOk=$("noticeOk").onclick;
+      $("noticeOk").onclick=()=>{
+        $("matchNoticeModal").classList.add("hidden");
+        $("noticeOk").onclick=oldOk;
+        startNewMatch();
+      };
+      return;
+    }
+
+    // This button is intentionally an override. It may be pressed at any
+    // point — normal timer, Last 3 Turns, during its countdown, or before all
+    // three turns are used — which is how a player concedes at any time.
+    const previewWinner=winnerFromLP();
+    const previewType=duelVictoryType();
+
+    let resultText;
+    if(previewWinner===0){
+      resultText="Duel "+state.duelNumber+" is a TIE at "+fmt(state.lp[0])+" LP.";
+    }else{
+      const winnerName=state.playerNames[previewWinner-1];
+      const loser=previewWinner===1?2:1;
+      const reason=state.lp[loser-1]===0
+        ? winnerName+" wins because "+state.playerNames[loser-1]+" has 0 LP."
+        : winnerName+" wins with "+fmt(state.lp[previewWinner-1])+" LP.";
+      resultText=reason;
+    }
+
+    // Do not alter LP, score, logs, turn, or timer until confirmation. The
+    // recorded victory type defaults to the automatic LP-based result;
+    // manually picking a winner in the confirmation modal (a concession)
+    // overrides it to "Overwhelm (Opponent Conceded)".
+    state.pendingDuelTransition={
+      winner:previewWinner,
+      victoryType:previewType,
+      manualWinnerOverride:false,
+      reason:resultText
+    };
+
+    if(state.duelNumber<3){
+      // Use the existing starter-selection confirmation. It remains available
+      // even during Last 3 Turns because this is an explicit override.
+      showNextDuelConfirmation(state.duelNumber+1,previewWinner);
+      return;
+    }
+
+    // Duel 3 has no Duel 4 — the same override formally ends the match based
+    // on the current LP result (or a manually chosen winner/concession).
+    showEndMatchConfirmation(resultText);
+  }
+
+  function showEndMatchConfirmation(resultText){
+    $("nextDuelTitle").textContent="End Match?";
+    $("nextDuelText").textContent=
+      resultText+" This is Duel 3, so there is no next duel."+
+      " Optionally choose a winner below to record a concession, or confirm to finish the match with the result above.";
+
+    // Always rebuild the actions panel from scratch here rather than reusing
+    // whatever the Duel 1/2 "Start Duel" confirmation left behind. Reusing it
+    // left a stale Confirm handler that required an irrelevant "next duel
+    // starter" selection (there is no next duel), so tapping the checkmark
+    // could silently do nothing even though the buttons visually looked
+    // selected from an earlier duel transition.
+    const actions=$("nextDuelModal").querySelector(".actions");
+    actions.innerHTML=
+      '<div class="next-duel-choice-group"><span>Who won this duel?</span>'+
+      '<button class="action-btn" id="winnerP1" type="button" title="Player 1 wins">'+escapeHtml(state.playerNames[0])+'</button>'+
+      '<button class="action-btn" id="winnerP2" type="button" title="Player 2 wins">'+escapeHtml(state.playerNames[1])+'</button></div>'+
+      '<button class="action-btn" id="nextDuelCancel" type="button">Cancel</button>'+
+      '<button class="action-btn primary" id="nextDuelConfirm" type="button">Confirm</button>';
+
+    if(state.pendingDuelTransition.winner===1)$("winnerP1").classList.add("selected");
+    if(state.pendingDuelTransition.winner===2)$("winnerP2").classList.add("selected");
+
+    const chooseWinner=(p)=>{
+      state.pendingDuelTransition.winner=p;
+      state.pendingDuelTransition.manualWinnerOverride=true;
+      state.pendingDuelTransition.victoryType="Overwhelm (Opponent Conceded)";
+      state.pendingDuelTransition.reason="Player-conceded Duel 3";
+      $("winnerP1").classList.toggle("selected",p===1);
+      $("winnerP2").classList.toggle("selected",p===2);
+    };
+    $("winnerP1").onclick=()=>chooseWinner(1);
+    $("winnerP2").onclick=()=>chooseWinner(2);
+    $("nextDuelCancel").onclick=()=>{
+      $("nextDuelModal").classList.add("hidden");
+      state.pendingDuelTransition=null;
+    };
+    // No starter selection applies here, so Confirm is enabled immediately —
+    // it uses the LP-based result unless a winner was manually chosen above.
+    $("nextDuelConfirm").onclick=()=>{
+      const pending=state.pendingDuelTransition;
+      $("nextDuelModal").classList.add("hidden");
+      if(!pending)return;
+      finalizeCurrentDuel(pending.reason,pending.victoryType||duelVictoryType(),pending.winner);
+      state.pendingDuelTransition=null;
+      const matchWinner=winnerFromMatchScore();
+      finishMatch(matchWinner,pending.reason+" · Final match score "+state.matchWins.join("–"));
+    };
+    $("nextDuelModal").classList.remove("hidden");
+  }
+
+  // Quick LP buttons.
+  document.querySelectorAll(".quick button").forEach(btn=>{
+    btn.addEventListener("click",()=>changeLP(Number(btn.dataset.p),Number(btn.dataset.d)));
+  });
+
+  // LP popup.
+  document.querySelectorAll(".lp").forEach(el=>{
+    el.addEventListener("click",()=>{
+      state.popupPlayer=Number(el.id.replace("lp",""));
+      $("lpModal").dataset.player=String(state.popupPlayer);
+      $("lpWho").textContent="Player "+state.popupPlayer;
+      lpExpression="";
+      lpDivisionResult=null;
+      renderLPEntry();
+      $("lpModal").classList.remove("hidden");
+    });
+  });
+
+  // Built-in numeric keypad. The amount field is deliberately not an input,
+  // so Android/iOS never opens the device keyboard.
+  let lpExpression="";
+  let lpDivisionResult=null;
+
+  function renderLPEntry(){
+    $("lpAmount").textContent = lpExpression || "0";
+  }
+
+  function lpKey(value){
+    if(value==="back"){
+      lpExpression=lpExpression.slice(0,-1);
+      lpDivisionResult=null;
+      renderLPEntry();
+      return;
+    }
+
+    if(value==="00"){
+      if(lpDivisionResult!==null){
+        lpDivisionResult=null;
+        lpExpression="";
+      }
+      if(lpExpression && lpExpression!=="0" && lpExpression.length<=5){
+        lpExpression += "00";
+      }else if(!lpExpression){
+        lpExpression="00";
+      }
+      lpExpression=lpExpression.replace(/^0+(?=\d)/,"");
+      renderLPEntry();
+      return;
+    }
+
+    if(value==="divide"){
+      const divisor=Number(lpExpression);
+
+      // Capture the player for THIS popup before changing anything.
+      // This prevents the division action from falling back to Player 1.
+      const player=Number($("lpModal").dataset.player || state.popupPlayer);
+
+      // Only 2 and 3 are valid divisors.
+      if((player===1 || player===2) && (divisor===2 || divisor===3)){
+        const currentLP=Number(state.lp[player-1]);
+        const result=Math.round(currentLP/divisor);
+
+        // Apply exactly like the other LP actions, then close the popup.
+        changeLP(player,result-currentLP,{label:"÷"+divisor+" Life Points",type:"division"});
+        lpExpression=String(result);
+        lpDivisionResult=result;
+        renderLPEntry();
+
+        // Give the LP animation one frame to start, then close the calculator.
+        requestAnimationFrame(()=>{
+          $("lpModal").classList.add("hidden");
+        });
+      }
+      return;
+    }
+
+    // Normal keypad number entry.
+    if(lpDivisionResult!==null){
+      lpDivisionResult=null;
+      lpExpression="";
+    }
+
+    if(lpExpression.length<7){
+      lpExpression += value;
+      lpExpression=lpExpression.replace(/^0+(?=\d)/,"");
+    }
+    renderLPEntry();
+  }
+
+    document.querySelectorAll("#lpKeypad [data-key]").forEach(btn=>{
+    btn.addEventListener("click",()=>lpKey(btn.dataset.key));
+  });
+  $("lp00").onclick=()=>{
+    if(lpDivisionResult!==null){
+      lpDivisionResult=null;
+      lpExpression="";
+    }
+    if(lpExpression && lpExpression!=="0" && lpExpression.length<=5){
+      lpExpression += "00";
+    }else if(!lpExpression){
+      lpExpression="00";
+    }
+    lpExpression=lpExpression.replace(/^0+(?=\\d)/,"");
+    renderLPEntry();
+  };
+
+  $("lpClear").onclick=()=>{
+    lpExpression="";
+    lpDivisionResult=null;
+    renderLPEntry();
+  };
+  $("lpBack").onclick=()=>{
+    lpExpression=lpExpression.slice(0,-1);
+    lpDivisionResult=null;
+    renderLPEntry();
+  };
+  $("lpCancel").onclick=()=>$("lpModal").classList.add("hidden");
+  document.querySelectorAll("#lpPresets button").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const target=Number(btn.dataset.set);
+      const current=Number(state.lp[state.popupPlayer-1]);
+      const delta=target-current;
+      if(delta!==0) changeLP(state.popupPlayer,delta,{label:"Set to "+target.toLocaleString(),type:delta>0?"gain":"loss"});
+      $("lpModal").classList.add("hidden");
+    });
+  });
+  $("lpDamage").onclick=()=>{
+    const n=lpDivisionResult!==null ? lpDivisionResult : Number(lpExpression);
+    if(n>0){
+      changeLP(state.popupPlayer,-n);
+      $("lpModal").classList.add("hidden");
+    }
+  };
+  $("lpHeal").onclick=()=>{
+    const n=lpDivisionResult!==null ? lpDivisionResult : Number(lpExpression);
+    if(n>0){
+      changeLP(state.popupPlayer,n);
+      $("lpModal").classList.add("hidden");
+    }
+  };
+
+
+  // One shared dice / coin utility beside the quick shortcuts.
+  $("headerRandom").onclick=()=>{
+    state.popupPlayer=1;
+    $("randomWho").textContent="Duel Utility";
+    const stage=$("randomStage");
+    if(stage) stage.className="random-stage", stage.innerHTML="—";
+    $("randomModal").classList.remove("hidden");
+  };
+  let randomAnimationTimer=null;
+  function runRandomThrow(type){
+    const stage=$("randomStage");
+    if(!stage)return;
+    if(window.arenaFx&&window.arenaFx.throwIt)return window.arenaFx.throwIt(type);
+
+    if(randomAnimationTimer){
+      clearTimeout(randomAnimationTimer);
+      randomAnimationTimer=null;
+    }
+
+    const value=type==="dice"
+      ? Math.floor(Math.random()*6)+1
+      : (Math.random()<.5?"HEADS":"TAILS");
+
+    stage.className="random-stage";
+    stage.innerHTML=type==="dice"
+      ? '<div class="random-die" aria-hidden="true">?</div>'
+      : '<div class="random-coin" aria-hidden="true">?</div>';
+
+    // Force a fresh animation even when the same control is tapped repeatedly.
+    void stage.offsetWidth;
+    stage.classList.add(type==="dice"?"dice-roll":"coin-flip");
+
+    randomAnimationTimer=setTimeout(()=>{
+      const label=type==="dice"?"RESULT":"RESULT";
+      stage.className="random-stage";
+      stage.innerHTML=type==="dice"
+        ? '<div class="random-final"><div class="random-die result-value">'+value+'</div><div class="result-label">'+label+'</div></div>'
+        : '<div class="random-final"><div class="random-coin result-value">'+(value==="HEADS"?"H":"T")+'</div><div class="result-label">'+value+'</div></div>';
+      randomAnimationTimer=null;
+    },1150);
+  }
+
+  $("diceBtn").onclick=()=>runRandomThrow("dice");
+  $("coinBtn").onclick=()=>runRandomThrow("coin");
+  $("randomClose").onclick=()=>$("randomModal").classList.add("hidden");
+
+  // End phase: only the current player can advance the turn.
+  document.querySelectorAll(".edge-turn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const player=Number(btn.dataset.p);
+
+      // Initial Turn 1 selection: clicking a player once selects/highlights
+      // them. Clicking that same highlighted player again officially starts.
+      if(state.awaitingTurnStart){
+        if(state.currentPlayer!==player){
+          state.currentPlayer=player;
+          renderTurn();
+          persistMatchData();
+          return;
+        }
+
+        state.startingPlayer=player;
+        state.awaitingTurnStart=false;
+        state.turn=1;
+        state.currentPlayer=player;
+        state.running=true;
+        state.timer=setInterval(tick,1000);
+        $("startPause").textContent="❚❚";
+        renderTurn();renderClock();
+        startDuelBackgroundMusic();
+        persistMatchData();
+        return;
+      }
+
+      if(player!==state.currentPlayer)return;
+      if(state.phase2 && state.phase2Clicks[player-1]>=3)return;
+      save();
+      if(state.phase2)state.phase2Clicks[player-1]++;
+      state.currentPlayer=player===1?2:1;
+      state.turn++;
+      renderTurn();renderClock();
+      persistMatchData();
+      if(state.phase2 && state.phase2Clicks[0]>=3 && state.phase2Clicks[1]>=3){
+        endThirdDuelByTime();
+      }
+    });
+  });
+
+  function toggleTurnTrackerVisibility(e){
+    if(e){
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if(typeof state.turnTrackerVisible!=="boolean") state.turnTrackerVisible=true;
+    state.turnTrackerVisible=!state.turnTrackerVisible;
+    const tracker=$("turnTracker");
+    if(tracker) tracker.classList.toggle("hidden",!state.turnTrackerVisible);
+    const btn=$("turnBtn");
+    if(btn){
+      btn.setAttribute("aria-pressed",String(state.turnTrackerVisible));
+      btn.title=state.turnTrackerVisible?"Hide turn tracker":"Show turn tracker";
+    }
+    persistMatchData();
+  }
+
+  // Capture-level handler is the single source of truth.
+  // Capture fallback: handles portrait layouts where another positioned layer
+  // may otherwise intercept the normal target phase.
+  document.addEventListener("click",(e)=>{
+    const btn=e.target.closest && e.target.closest("#turnBtn");
+    if(!btn) return;
+    if(e.__duelSynapseTurnHandled) return;
+    e.__duelSynapseTurnHandled=true;
+    toggleTurnTrackerVisibility(e);
+  },true);
+
+  // Header controls.
+  $("startPause").onclick=toggleTimer;
+
+  // Match History has its own dedicated header control.
+  $("matchHistoryBtn")?.addEventListener("click",(e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    openMatchHistory();
+  });
+  $("lpLogsBtn")?.addEventListener("click",(e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    const m=$("lpLogsModal");if(!m)return;
+    m.classList.remove("hidden");
+    m.classList.add("lp-logs-open");
+    m.style.display="flex";m.style.visibility="visible";m.style.opacity="1";m.style.pointerEvents="auto";
+    if(typeof updateLPLogs==="function")updateLPLogs();
+  });
+  function refreshUndoRedoButtons(){
+    if($("undoBtn")) $("undoBtn").disabled=state.history.length===0;
+    if($("redoBtn")) $("redoBtn").disabled=state.redoStack.length===0;
+  }
+  $("undoBtn").onclick=()=>{
+    const x=state.history.pop();if(!x)return;
+    state.redoStack.push(snapshotState());
+    if(state.redoStack.length>100)state.redoStack.shift();
+    state.lp=[...x.lp];state.remaining=x.remaining;state.phase2=x.phase2;state.turn=x.turn;state.currentPlayer=x.currentPlayer;state.startingPlayer=x.startingPlayer;state.awaitingTurnStart=!!x.awaitingTurnStart;
+    if(Number.isFinite(x.lpLogLength)) state.lpLogs.splice(x.lpLogLength);
+    renderLP(1,true);renderLP(2,true);renderClock();renderTurn();
+    if(typeof updateLPLogs==="function") updateLPLogs();
+    refreshUndoRedoButtons();
+  };
+  $("redoBtn")?.addEventListener("click",()=>{
+    const x=state.redoStack.pop();if(!x)return;
+    state.history.push(snapshotState());
+    if(state.history.length>100)state.history.shift();
+    state.lp=[...x.lp];state.remaining=x.remaining;state.phase2=x.phase2;state.turn=x.turn;state.currentPlayer=x.currentPlayer;state.startingPlayer=x.startingPlayer;state.awaitingTurnStart=!!x.awaitingTurnStart;
+    if(Number.isFinite(x.lpLogLength)) state.lpLogs.splice(x.lpLogLength);
+    renderLP(1,true);renderLP(2,true);renderClock();renderTurn();
+    if(typeof updateLPLogs==="function") updateLPLogs();
+    refreshUndoRedoButtons();
+  });
+  refreshUndoRedoButtons();
+  $("resetBtn").onclick=()=>resetDuelButton();
+
+
+  // Player name editing: tap the name (or the P1/P2 badge) and type.
+  function renamePlayer(player){
+    const i=player-1, host=document.querySelector("#p"+player+" .pname");
+    if(!host||host.querySelector("input"))return;
+    const inp=document.createElement("input");
+    inp.className="pname-input";inp.type="text";inp.maxLength=24;inp.autocomplete="off";
+    inp.spellcheck=false;inp.setAttribute("enterkeyhint","done");inp.setAttribute("aria-label","Duelist "+player+" name");
+    inp.value=state.playerNames[i]||("Player "+player);
+    host.textContent="";host.appendChild(inp);inp.focus();inp.select();
+    let done=false;
+    const commit=ok=>{
+      if(done)return;done=true;
+      const name=inp.value.trim().slice(0,24);
+      if(ok&&name){state.playerNames[i]=name;persistMatchData();}
+      renderTurn();
+    };
+    inp.addEventListener("keydown",e=>{
+      e.stopPropagation();
+      if(e.key==="Enter")commit(true);else if(e.key==="Escape")commit(false);
+    });
+    inp.addEventListener("click",e=>e.stopPropagation());
+    inp.addEventListener("blur",()=>commit(true));
+  }
+  $("playerBadge1").onclick=()=>renamePlayer(1);
+  $("playerBadge2").onclick=()=>renamePlayer(2);
+  document.querySelectorAll(".pname").forEach((el,idx)=>el.addEventListener("click",()=>renamePlayer(idx+1)));
+  [1,2].forEach(n=>{
+    const f=$("setName"+n);if(!f)return;
+    f.addEventListener("input",()=>{
+      const v=f.value.trim().slice(0,24);if(!v)return;
+      state.playerNames[n-1]=v;persistMatchData();
+      const host=document.querySelector("#p"+n+" .pname");
+      if(host&&!host.querySelector("input"))renderTurn();
+    });
+  });
+
+  $("noticeOk").onclick=()=>$("matchNoticeModal").classList.add("hidden");
+  $("nextDuelCancel").onclick=()=>{state.pendingDuelTransition=null;$("nextDuelModal").classList.add("hidden");};
+  $("nextDuelConfirm").onclick=startNextDuel;
+
+  $("matchHistoryModal")?.addEventListener("click",(e)=>{
+    if(e.target === $("matchHistoryModal")) closeMatchHistory();
+  });
+  $("matchHistoryList").addEventListener("click",(e)=>{
+    const del=e.target.closest && e.target.closest("[data-history-delete]");
+    if(del){
+      e.preventDefault();
+      e.stopPropagation();
+      deleteMatchHistory(del.dataset.historyDelete);
+      return;
+    }
+    const b=e.target.closest && e.target.closest("[data-history-id]");
+    if(b)openMatchDetails(b.dataset.historyId);
+  });
+  $("matchHistoryModal").addEventListener("click",(e)=>{
+    if(e.target===$("matchHistoryModal"))closeMatchHistory();
+  });
+  $("matchDetailModal").addEventListener("click",(e)=>{
+    if(e.target===$("matchDetailModal"))$("matchDetailModal").classList.add("hidden");
+  });
+
+  // Settings.
+  $("settingsBtn").onclick=()=>$("settingsModal").classList.remove("hidden");
+  $("settingsClose").onclick=()=>$("settingsModal").classList.add("hidden");
+
+  $("resetSynapse").onclick=()=>{
+    if(!confirm("Reset Duel Synapse completely?\n\nThis will erase all duel history, Life Point logs, match wins, and player names. This cannot be undone."))return;
+    try{localStorage.removeItem("duelSynapseMatchData");
+      localStorage.removeItem("duelSynapseMatchArchive");}catch(_){}
+    state.duelHistory=[];
+    state.lpLogs=[];
+    state.duelNumber=1;
+    state.matchWins=[0,0];
+    state.playerNames=["Player 1","Player 2"];
+    state.matchOver=false;
+    state.startingPlayer=null;
+    state.awaitingTurnStart=true;
+    $("settingsModal").classList.add("hidden");
+    reset();
+    showMatchNotice("DUEL SYNAPSE RESET","All match data and duel logs have been cleared.","RESET COMPLETE");
+  };
+
+
+
+  function setThemeFromImageSource(src){
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const c=document.createElement("canvas"),n=64;c.width=n;c.height=n;
+        const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(img,0,0,n,n);
+        const d=x.getImageData(0,0,n,n).data,buckets=new Map();
+        let lum=0,count=0;
+        for(let i=0;i<d.length;i+=4){
+          const R=d[i],G=d[i+1],B=d[i+2],A=d[i+3];
+          if(A<120)continue;
+          lum+=.2126*R+.7152*G+.0722*B;count++;
+          const mx=Math.max(R,G,B),mn=Math.min(R,G,B);
+          if(mx>35 && mx-mn>22){
+            const key=`${Math.round(R/20)*20},${Math.round(G/20)*20},${Math.round(B/20)*20}`;
+            buckets.set(key,(buckets.get(key)||0)+1);
+          }
+        }
+        let best="65,220,145",score=-1;
+        for(const [key,npx] of buckets){
+          const [R,G,B]=key.split(",").map(Number);
+          const mx=Math.max(R,G,B),mn=Math.min(R,G,B);
+          const s=npx*(.6+(mx-mn)/255);
+          if(s>score){score=s;best=key}
+        }
+        let rgb=best.split(",").map(Number),avg=count?lum/count:128;
+        if(avg>175) rgb=rgb.map(v=>Math.max(18,Math.round(v*.55)));
+        else if(avg>125) rgb=rgb.map(v=>Math.max(25,Math.round(v*.78)));
+        else rgb=rgb.map(v=>Math.min(255,Math.round(v*1.15+8)));
+        if(Math.max(...rgb)-Math.min(...rgb)<55){
+          const mx=Math.max(...rgb),idx=rgb.indexOf(mx);
+          rgb=rgb.map((v,i)=>i===idx?Math.min(255,v+35):Math.max(8,v-10));
+        }
+        const k=245/Math.max(...rgb,1),bright=rgb.map(v=>Math.min(255,Math.round(v*k)));
+        document.documentElement.style.setProperty("--theme-rgb",rgb.join(","));
+        document.documentElement.style.setProperty("--theme-bright",bright.join(","));
+      }catch(_){}
+    };
+    img.src=src;
+  }
+
+  let wallpaperObjectURL = null;
+
+  function applyWallpaperURL(url){
+    if(!url)return;
+    document.documentElement.style.setProperty("--wallpaper", 'url("' + url + '")');
+    if(window.arenaFx&&window.arenaFx.theme)window.arenaFx.theme(url);
+  }
+
+  function setWallpaper(file){
+    if(!file || !file.type.startsWith("image/")) return;
+
+    // Object URLs display the selected image immediately and avoid CSS/data-URL
+    // escaping problems with large images.
+    if(wallpaperObjectURL) URL.revokeObjectURL(wallpaperObjectURL);
+    wallpaperObjectURL = URL.createObjectURL(file);
+    applyWallpaperURL(wallpaperObjectURL);
+
+    // Save a compressed copy for future page loads.
+    const reader = new FileReader();
+    reader.onload = e => {
+      try{
+        const img = new Image();
+        img.onload = () => {
+          const max = 1920;
+          const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const compressed = canvas.toDataURL("image/jpeg", .88);
+          try{localStorage.setItem("duelSynapseWallpaper", compressed)}catch(_){}
+        };
+        img.src = e.target.result;
+      }catch(_){}
+    };
+    reader.readAsDataURL(file);
+  }
+
+  $("wallpaper").addEventListener("change", e => {
+    const file = e.target.files && e.target.files[0];
+    setWallpaper(file);
+    e.target.value = "";
+  });
+
+  $("clearWallpaper").onclick=()=>{
+    if(wallpaperObjectURL){
+      URL.revokeObjectURL(wallpaperObjectURL);
+      wallpaperObjectURL=null;
+    }
+    document.documentElement.style.removeProperty("--wallpaper");
+    if(window.arenaFx&&window.arenaFx.clearTheme)window.arenaFx.clearTheme();
+    try{localStorage.removeItem("duelSynapseWallpaper")}catch(_){}
+  };
+
+  function displaySettings(){
+    const artwork=Number($("setArtwork").value);
+    const glass=Number($("setGlass").value);
+    const buttonGlass=Number($("setButtonGlass").value);
+    const buttonSize=Number($("setButtonSize").value);
+    const shade=((100-artwork)/100*.14).toFixed(3);
+    document.documentElement.style.setProperty("--shade",shade);
+    document.documentElement.style.setProperty("--glass",(glass/100).toFixed(2));
+    document.documentElement.style.setProperty("--button-glass",(buttonGlass/100).toFixed(3));
+    const scale=buttonSize/100;
+    const bannerScale=1+((scale-1)*0.15);
+    document.documentElement.style.setProperty("--button-scale",scale.toFixed(2));
+    document.documentElement.style.setProperty("--button-banner-scale",bannerScale.toFixed(3));
+
+    if($("setArtworkOut"))$("setArtworkOut").textContent=artwork+"%";
+    if($("setGlassOut"))$("setGlassOut").textContent=glass+"%";
+    if($("setButtonGlassOut"))$("setButtonGlassOut").textContent=buttonGlass+"%";
+    if($("setButtonSizeOut"))$("setButtonSizeOut").textContent=buttonSize+"%";
+
+    try{
+      localStorage.setItem("duelSynapseAppearance",JSON.stringify({
+        artwork,glass,buttonGlass,buttonSize
+      }));
+    }catch(_){}
+  }
+  $("setArtwork").oninput=displaySettings;
+  $("setGlass").oninput=displaySettings;
+  $("setButtonGlass").oninput=displaySettings;
+  $("setButtonSize").oninput=displaySettings;
+
+  // Duel timer setting applies immediately to the currently displayed duel.
+  // It does not wait for the next duel. Changing it also exits Last 3 Turns
+  // because the user explicitly selected a new Duel timer.
+  function applyDuelTimerSetting(){
+    const minutes=Number($("setDuel").value);
+    if(!Number.isFinite(minutes) || minutes<1)return;
+    state.duelSeconds=minutes*60;
+    state.remaining=state.duelSeconds;
+    state.phase2=false;
+    state.phase2Clicks=[0,0];
+    cancelResultCountdown();
+    stopLastThreeMusic();
+    renderClock();
+    renderTurn();
+    persistMatchData();
+  }
+  function applyExtraTimerSetting(){
+    const minutes=Number($("setExtra").value);
+    if(!Number.isFinite(minutes) || minutes<1)return;
+    state.extraSeconds=minutes*60;
+    // If Last 3 Turns is already active, immediately replace the displayed
+    // countdown with the newly selected value.
+    if(state.phase2){
+      state.remaining=state.extraSeconds;
+      cancelResultCountdown();
+      stopLastThreeMusic();
+      enterLastThreeMusic();
+      renderClock();
+    }
+    persistMatchData();
+  }
+  $("setDuel").addEventListener("input",applyDuelTimerSetting);
+  $("setDuel").addEventListener("change",applyDuelTimerSetting);
+  $("setExtra").addEventListener("input",applyExtraTimerSetting);
+  $("setExtra").addEventListener("change",applyExtraTimerSetting);
+
+  $("lastThreeMusicFile").addEventListener("change",e=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    if(state.lastThreeMusicUrl)URL.revokeObjectURL(state.lastThreeMusicUrl);
+    state.lastThreeMusicUrl=URL.createObjectURL(file);
+    state.lastThreeMusicName=file.name;
+    stopLastThreeMusic();
+    primeMusicAudio();
+  });
+
+  $("lastThreeMusicToggle").onclick=async()=>{
+    if(!state.lastThreeMusicUrl)return;
+    await primeMusicAudio();
+    if(state.lastThreeMusicPlaying) stopLastThreeMusic();
+    else await playLastThreeMusic();
+  };
+
+  $("lastThreeMusicClear").onclick=()=>{
+    stopLastThreeMusic();
+    if(state.lastThreeMusicUrl)URL.revokeObjectURL(state.lastThreeMusicUrl);
+    state.lastThreeMusicUrl=null;
+    state.lastThreeMusicName="";
+    $("lastThreeMusicFile").value="";
+  };
+
+  // Normal background music controls.
+  $("musicFile").addEventListener("change",e=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    stopBackgroundMusic();
+    if(state.musicUrl)URL.revokeObjectURL(state.musicUrl);
+    state.musicUrl=URL.createObjectURL(file);
+    state.musicName=file.name;
+    bgMusic.src=state.musicUrl;
+    primeMusicAudio();
+  });
+
+  $("musicToggle").onclick=async()=>{
+    if(!state.musicUrl)return;
+    await primeMusicAudio();
+    if(state.musicPlaying) stopBackgroundMusic(false);
+    else{
+      // Normal BGM is mutually exclusive with Last 3 Turns music.
+      stopLastThreeMusic(false);
+      await playBackgroundMusic();
+    }
+  };
+
+  $("musicClear").onclick=()=>{
+    stopBackgroundMusic();
+    if(state.musicUrl)URL.revokeObjectURL(state.musicUrl);
+    state.musicUrl=null;
+    state.musicName="";
+    bgMusic.removeAttribute("src");
+    bgMusic.load();
+    $("musicFile").value="";
+  };
+
+  $("settingsApply").onclick=async()=>{
+    const layout=$("setLayout").value;
+    selectedLayout=layout;
+    try{localStorage.setItem("duelSynapseLayout",layout);}catch(_){}
+    displaySettings();
+    applyOrientation();
+    // Lock the physical device orientation when Portrait/Landscape is chosen.
+    // Auto explicitly releases any previous orientation lock.
+    const locked=await setOrientationLock(layout);
+    if(!locked && layout!=="auto"){
+      // The visual layout still follows the selected mode, but the browser may
+      // refuse a physical lock (for example unsupported WebView/content://).
+      console.warn("Duel Synapse: physical orientation lock was rejected by the browser.");
+    }
+    $("settingsModal").classList.add("hidden");
+  };
+
+  // Close modal when tapping outside.
+  document.querySelectorAll(".modal").forEach(m=>{
+    m.addEventListener("click",e=>{if(e.target===m)m.classList.add("hidden")});
+  });
+
+  // Keyboard.
+  document.addEventListener("keydown",e=>{
+    if(e.target.matches("input,select"))return;
+    if(e.code==="Space"){e.preventDefault();toggleTimer();}
+    if(e.key.toLowerCase()==="r")reset();
+    if(e.key.toLowerCase()==="z"){if(e.shiftKey)$("redoBtn")?.click();else $("undoBtn").click();}
+    if(e.key.toLowerCase()==="y")$("redoBtn")?.click();
+  });
+
+
+  // Restore persistent match history/logs. Current LP/timer intentionally start fresh.
+  try{
+    const savedMatch=JSON.parse(localStorage.getItem("duelSynapseMatchData")||"null");
+    if(savedMatch){
+      if(Array.isArray(savedMatch.playerNames)&&savedMatch.playerNames.length===2)state.playerNames=savedMatch.playerNames;
+      if(Array.isArray(savedMatch.duelHistory))state.duelHistory=savedMatch.duelHistory;
+      if(Array.isArray(savedMatch.lpLogs))state.lpLogs=savedMatch.lpLogs;
+      if(Array.isArray(savedMatch.matchWins)&&savedMatch.matchWins.length===2)state.matchWins=savedMatch.matchWins;
+      if(Number.isFinite(savedMatch.duelNumber))state.duelNumber=Math.min(3,Math.max(1,savedMatch.duelNumber));
+    }
+  }catch(_){}
+
+  // Restore wallpaper and initialize.
+  try{
+    const saved=localStorage.getItem("duelSynapseWallpaper");
+    if(saved) applyWallpaperURL(saved);
+  }catch(_){}
+
+  // Restore Appearance settings (Artwork, Panel Glass, Button Glass, Button
+  // Size) so the chosen button scale survives a page reload instead of
+  // silently resetting to 100% every time.
+  try{
+    const savedAppearance=JSON.parse(localStorage.getItem("duelSynapseAppearance")||"null");
+    if(savedAppearance){
+      if(Number.isFinite(savedAppearance.artwork))$("setArtwork").value=savedAppearance.artwork;
+      if(Number.isFinite(savedAppearance.glass))$("setGlass").value=savedAppearance.glass;
+      if(Number.isFinite(savedAppearance.buttonGlass))$("setButtonGlass").value=savedAppearance.buttonGlass;
+      if(Number.isFinite(savedAppearance.buttonSize))$("setButtonSize").value=savedAppearance.buttonSize;
+    }
+  }catch(_){}
+
+  renderLP(1,false);renderLP(2,false);renderClock();renderTurn();displaySettings();
+  applyOrientation();
+  // Re-apply a saved lock when possible. Browsers that require a user gesture
+  // will simply reject this attempt; the next Settings > Apply will retry it.
+  if(selectedLayout!=="auto") setOrientationLock(selectedLayout);
+
+})();
+
+  function duelSynapsePortraitCenter(){
+    if(document.documentElement.classList.contains("is-portrait")){
+      const zone=document.querySelector(".duel > .timer-zone");
+      if(zone){
+        zone.style.top="0";
+        zone.style.bottom="0";
+        zone.style.left="0";
+        zone.style.right="0";
+      }
+    }
+  }
+  window.addEventListener("resize",duelSynapsePortraitCenter,{passive:true});
+  window.addEventListener("orientationchange",()=>setTimeout(duelSynapsePortraitCenter,150),{passive:true});
+  setTimeout(duelSynapsePortraitCenter,0);
+
+
+  function formatLPLogTime(iso){
+    try{return new Intl.DateTimeFormat(undefined,{hour:"numeric",minute:"2-digit",second:"2-digit"}).format(new Date(iso));}
+    catch(e){return "—";}
+  }
+  function updateLPLogs(){
+    const list=document.getElementById("lpLogsList"), live=window.duelSynapseState;
+    if(!list||!live)return;
+    const current=Array.isArray(live.lpLogs)?live.lpLogs:[];
+    const completed=Array.isArray(live.duelHistory)?live.duelHistory:[];
+    const p1=document.getElementById("logP1"),p2=document.getElementById("logP2"),count=document.getElementById("lpLogCount");
+    if(p1)p1.textContent=Number(live.lp[0]||0).toLocaleString();
+    if(p2)p2.textContent=Number(live.lp[1]||0).toLocaleString();
+    const total=completed.reduce((n,d)=>n+(Array.isArray(d.logs)?d.logs.length:0),0)+current.length;
+    if(count)count.textContent=total+" change"+(total===1?"":"s");
+
+    function rows(logs){
+      return logs.slice().reverse().map(log=>{
+        const sign=Number(log.delta)>0?"+":"−";
+        const cls=log.type==="division"?"division":(Number(log.delta)>0?"gain":"loss");
+        let when="—";
+        try{when=new Intl.DateTimeFormat(undefined,{hour:"numeric",minute:"2-digit",second:"2-digit"}).format(new Date(log.timestamp));}catch(e){}
+        return `<div class="lp-log ${cls}">
+          <div class="lp-log-turn">TURN<br><strong>${log.turn}</strong></div>
+          <div class="lp-log-main">
+            <div class="lp-log-change">${escapeHtml(live.playerNames[log.player-1]||("P"+log.player))} ${sign}${Math.abs(Number(log.delta)).toLocaleString()}</div>
+            <div class="lp-log-detail">${log.label||"Life Points change"} · ${Number(log.before).toLocaleString()} → ${Number(log.after).toLocaleString()}</div>
+          </div>
+          <div class="lp-log-time">${when}</div>
+        </div>`;
+      }).join("");
+    }
+
+    let out="";
+    completed.slice().reverse().forEach(d=>{
+      const winner=d.winner?live.playerNames[d.winner-1]:"Draw";
+      out+=`<div class="duel-log-header"><strong>Duel ${d.duel}</strong><span>${winner}${d.reason?" · "+d.reason:""}</span></div>`;
+      out+=rows(Array.isArray(d.logs)?d.logs:[]);
+    });
+    out+=`<div class="duel-log-header current-duel"><strong>Duel ${live.duelNumber}</strong><span>Current · ${live.playerNames[0]} ${live.lp[0].toLocaleString()} · ${live.playerNames[1]} ${live.lp[1].toLocaleString()}</span></div>`;
+    out+=rows(current);
+    list.innerHTML=out||'<div class="lp-log-empty">No Life Point changes yet.</div>';
+  }
+
+  function openLPLogs(){
+    var modal=document.getElementById("lpLogsModal");
+    if(!modal)return;
+    if(typeof window.updateLPLogs==="function") window.updateLPLogs();
+    modal.classList.remove("hidden");
+    modal.classList.add("lp-logs-open");
+    modal.style.setProperty("display","flex","important");
+    modal.setAttribute("aria-hidden","false");
+  }
+
+  function closeLPLogs(){
+    var modal=document.getElementById("lpLogsModal");
+    if(!modal)return;
+    modal.classList.remove("lp-logs-open");
+    modal.classList.add("hidden");
+    modal.style.removeProperty("display");
+    modal.setAttribute("aria-hidden","true");
+  }
+
+  // Delegated listener means the button works even if other initialization
+  // code runs before or after this script.
+  document.addEventListener("click",function(e){
+    var button=e.target.closest && e.target.closest("#lpLogsBtn");
+    if(button){
+      e.preventDefault();
+      e.stopPropagation();
+      openLPLogs();
+      return;
+    }
+
+    var close=e.target.closest && e.target.closest("#lpLogsClose");
+    if(close){
+      e.preventDefault();
+      e.stopPropagation();
+      closeLPLogs();
+      return;
+    }
+
+    var modal=document.getElementById("lpLogsModal");
+    if(modal && e.target===modal){
+      closeLPLogs();
+    }
+  },true);
+
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Escape") closeLPLogs();
+  });
+
+  window.openLPLogs=openLPLogs;
+  window.updateLPLogs=updateLPLogs;
+
+
+(function(){
+  var c=document.getElementById("lpLogsClose");
+  if(c){
+    c.onclick=function(e){
+      e.preventDefault();
+      var m=document.getElementById("lpLogsModal");
+      if(m){
+        m.classList.remove("lp-logs-open");
+        m.classList.add("hidden");
+        m.style.display="none";
+      }
+    };
+  }
+})();
+
+</script>
+</body>
+</html>
