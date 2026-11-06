@@ -151,6 +151,7 @@ public class MainActivity extends ComponentActivity {
     private static final boolean SPLASH_BADGE = false;
     private static final boolean PLAY_BILLING = false;
     private static final boolean MEDIA_PLAYER = false;
+    private static final boolean LOCAL_FILES = false;
     private static final String START_URL = "__TARGET_URL__";
     // ---- End of build options ----
 
@@ -321,6 +322,7 @@ public class MainActivity extends ComponentActivity {
         webView.addJavascriptInterface(new OfflineStorageBridge(), "CastelApp");
         if (PLAY_BILLING) attachPlayBilling();
         if (MEDIA_PLAYER) attachMediaBridge();
+        if (LOCAL_FILES) attachLocalFiles();
 
         connectivity = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         applyCacheMode();
@@ -337,6 +339,8 @@ public class MainActivity extends ComponentActivity {
                         return new WebResourceResponse(mimeType(safe), charsetFor(safe), new FileInputStream(f));
                     } catch (Exception ignored) { return null; }
                 })
+                // The page's library folders (window.CastelFiles), when this app has them.
+                .addPathHandler("/castel-files/", path -> filesHooks == null ? null : filesHooks.serve(path))
                 // Legacy start URL (/assets/index.html) keeps working for older builds.
                 .addPathHandler("/assets/", path -> serveLocalAsset(path, false))
                 // Uploaded sites are served from the root, like a normal web host, so
@@ -1184,6 +1188,32 @@ public class MainActivity extends ComponentActivity {
         else webView.onPause();
     }
 
+    // ---- Library folders (only compiled in when the page uses CastelFiles / localFiles option) ----
+    /** Implemented by the optional LocalFiles class. */
+    interface FilesHooks {
+        WebResourceResponse serve(String path);
+        boolean onActivityResult(int requestCode, int resultCode, Intent data);
+        void close();
+    }
+    private volatile FilesHooks filesHooks;
+
+    @android.annotation.SuppressLint("JavascriptInterface")
+    private void attachLocalFiles() {
+        try {
+            Class<?> type = Class.forName(MainActivity.class.getPackage().getName() + ".LocalFiles");
+            Object bridge = type.getConstructor(MainActivity.class).newInstance(this);
+            filesHooks = (FilesHooks) bridge;
+            webView.addJavascriptInterface(bridge, "CastelFiles");
+        } catch (Throwable t) {
+            Log.w(TAG, "Library folders aren't available in this build", t);
+        }
+    }
+
+    /** Runs a script in the page from any thread. */
+    void runPageScript(String js) {
+        runOnUiThread(() -> { if (webView != null) webView.evaluateJavascript(js, null); });
+    }
+
     // ---- Google Play Billing (only compiled in when the playBilling option is on) ----
     private Object playBilling;
 
@@ -1732,6 +1762,7 @@ public class MainActivity extends ComponentActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (filesHooks != null && filesHooks.onActivityResult(requestCode, resultCode, data)) return;
         if (requestCode == 1001 && fileChooserCallback != null) {
             Uri[] results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
             boolean pickedNothing = data == null || (data.getData() == null && data.getClipData() == null);
@@ -1746,6 +1777,7 @@ public class MainActivity extends ComponentActivity {
     protected void onDestroy() {
         dataExecutor.shutdownNow();
         if (mediaHooks != null) { try { mediaHooks.close(); } catch (Exception ignored) { } mediaHooks = null; }
+        if (filesHooks != null) { try { filesHooks.close(); } catch (Exception ignored) { } filesHooks = null; }
         if (playBilling instanceof java.io.Closeable) {
             try { ((java.io.Closeable) playBilling).close(); } catch (Exception ignored) { }
         }

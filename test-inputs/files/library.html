@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Library folders test</title>
+<style>body{font:16px system-ui;background:#0c0f1f;color:#eef;padding:16px}img{width:80px;height:80px;margin:4px;background:#223}</style></head>
+<body><h1>Library folders</h1><p id="st">Starting…</p><div id="imgs"></div>
+<script>
+// Acceptance test for window.CastelFiles (local-files-test.yml). Logs FILES_TEST:<step> lines to logcat.
+(function () {
+  var log = function (m) { console.log('FILES_TEST:' + m); document.getElementById('st').textContent = m; };
+  var F = window.CastelFiles;
+  // a 1x1 red PNG
+  var PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+  function img(src) { return new Promise(function (ok) { var i = new Image(); i.onload = function () { ok(i.naturalWidth > 0); }; i.onerror = function () { ok(false); }; i.src = src; document.getElementById('imgs').append(i); }); }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  async function run() {
+    try {
+      if (!F) throw new Error('window.CastelFiles missing');
+      var info = JSON.parse(F.info());
+      log('INFO:' + info.kind + ':' + info.root);
+      if (!F.ensure('Lib/pics,Lib/rulings')) throw new Error('ensure failed');
+      if (!F.writeText('Lib/rulings/1.json', '{"ok":true}')) throw new Error('writeText failed');
+      if (F.readText('Lib/rulings/1.json') !== '{"ok":true}') throw new Error('readText mismatch');
+      log('TEXT_OK');
+      if (!F.writeBase64('Lib/pics/10000.png', 'data:image/png;base64,' + PNG)) throw new Error('writeBase64 failed');
+      if (!(await img(F.url('Lib/pics/10000.png')))) throw new Error('written picture did not load');
+      if (await img(F.url('Lib/pics/missing.png'))) throw new Error('a missing file loaded');
+      log('SERVE_OK');
+      var names = JSON.parse(F.list('Lib/pics'));
+      if (names.indexOf('10000.png') < 0) throw new Error('list misses the file: ' + names.join(','));
+      var u = JSON.parse(F.usage('Lib/pics'));
+      if (u.files < 1 || u.bytes < 10) throw new Error('usage wrong');
+      log('LIST_OK:' + names.length);
+      // a framed page (another origin) can show the files too
+      var fr = document.createElement('iframe'); fr.srcdoc = '<img id=x src="' + F.url('Lib/pics/10000.png') + '" onload="parent.postMessage(\'frame-ok\',\'*\')" onerror="parent.postMessage(\'frame-bad\',\'*\')">';
+      var framed = new Promise(function (ok) { addEventListener('message', function (e) { if (/^frame-/.test(e.data)) ok(e.data === 'frame-ok'); }); });
+      document.body.append(fr);
+      if (!(await framed)) throw new Error('framed page could not load the file');
+      log('FRAME_OK');
+      // native background download, skipping files that exist
+      var done = new Promise(function (ok) { window.__castelFiles = function (job, d, t, f, fin) { if (fin) ok([d, t, f]); }; });
+      F.download('t1', JSON.stringify([{ u: 'https://raw.githubusercontent.com/castelnoleal/instapped/main/README.md', p: 'Lib/dl/readme.md' }, { u: 'https://raw.githubusercontent.com/castelnoleal/instapped/main/LICENSE.md', p: 'Lib/dl/license.md' }]), 4);
+      var r = await done;
+      if (r[0] !== 2 || r[2] !== 0) throw new Error('download result ' + r.join('/'));
+      if (F.readText('Lib/dl/readme.md').length < 20) throw new Error('downloaded file empty');
+      log('DOWNLOAD_OK');
+      if (!F.remove('Lib/dl') || F.exists('Lib/dl/readme.md')) throw new Error('remove failed');
+      log('REMOVE_OK');
+      log('READY_PASTE');
+      // the test pushes 20000.png into Lib/pics with adb, like a person pasting files into the folder
+      for (var i = 0; i < 60; i++) {
+        if (JSON.parse(F.list('Lib/pics')).indexOf('20000.png') >= 0) break;
+        await wait(1000);
+      }
+      if (!(await img(F.url('Lib/pics/20000.png')))) throw new Error('pasted picture did not load');
+      log('PASTE_OK');
+      log('DONE');
+    } catch (e) { log('FAIL:' + (e && e.message || e)); }
+  }
+  addEventListener('load', function () { setTimeout(run, 800); });
+})();
+</script></body></html>
