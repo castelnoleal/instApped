@@ -52,4 +52,19 @@ wait_log "FILES_TEST:DONE" 10 || fail "driver did not finish"
 adb exec-out screencap -p > "$OUT/1-done.png"
 adb logcat -d > "$OUT/logcat.txt" || true
 grep -E "FATAL EXCEPTION" "$OUT/logcat.txt" && fail "the app crashed"
+# Rotating must not restart the app or reload the page (the person would lose what they were doing).
+before=$(adb logcat -d | grep -c "APP_CREATE" || true)
+loads=$(adb logcat -d | grep -c "FILES_TEST:INFO" || true)
+adb shell settings put system accelerometer_rotation 0
+adb shell settings put system user_rotation 1
+sleep 8
+adb exec-out screencap -p > "$OUT/2-landscape.png"
+adb shell settings put system user_rotation 0
+sleep 6
+after=$(adb logcat -d | grep -c "APP_CREATE" || true)
+loads2=$(adb logcat -d | grep -c "FILES_TEST:INFO" || true)
+adb logcat -d > "$OUT/logcat.txt" || true
+grep -E "APP_CREATE|WEBVIEW_READY|Configuration|config" "$OUT/logcat.txt" | grep -i "castel\|filestest" | tail -20 || true
+echo "screen created: $before -> $after; page loaded: $loads -> $loads2"
+if [ "$after" != "$before" ] || [ "$loads2" != "$loads" ]; then fail "rotating restarted the app or reloaded the page"; fi
 echo "Library folders acceptance passed."
