@@ -49,6 +49,16 @@ Apps built from HTML/ZIP that use `window.CastelMedia` get music support automat
 
 The full API is documented at the top of `android-template/optional/media/MediaBridge.java`.
 
+## Library folders (window.CastelFiles)
+
+Apps built from HTML/ZIP that use `window.CastelFiles` get a real folder on the phone, like desktop apps that keep a `pics` folder next to them. It's compiled in automatically (or with `"localFiles": true` in the build manifest; `false` turns it off). No permission is added.
+
+- **Where:** the app's own folder in shared storage (`Android/data/PACKAGE/files`, reachable over USB and by file managers), or any folder the person picks with `CastelFiles.chooseFolder(cb)` (e.g. `Internal storage/KodeX`). Files pasted into the folder with any file manager are used straight away.
+- **Use files directly:** `CastelFiles.url(path)` gives `https://appassets.androidplatform.net/castel-files/PATH`, which works in `<img>`, `<audio>`, `fetch` and in pages the app frames.
+- **Read and write:** `ensure("A/pics,A/data")`, `list(dir)` (JSON array of file names), `exists`, `readText`, `writeText`, `writeBase64`, `remove`, `usage(dir)`, `info()`.
+- **Bulk downloads:** `download(job, json, perSecond)` with `[{"u": url, "p": path}, …]` runs natively in the background (no CORS, no page memory), skips files that already exist so it resumes, and reports to `window.__castelFiles(job, done, total, failed, finished)`. `cancel(job)` stops it.
+- **Imports:** `importFolder(dest, cb)` copies a folder the person picks; `importZip(dest, cb)` unpacks a ZIP.
+
 ## Signing
 
 Never commit a keystore, private signing key, or signing password. Release signing must be injected through GitHub Actions secrets or another secure secret manager.

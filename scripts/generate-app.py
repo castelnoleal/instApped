@@ -301,6 +301,40 @@ def clean_url(value):
 
 
 MEDIA_MARKER = b"CastelMedia"
+FILES_MARKER = b"CastelFiles"
+
+
+def page_uses(marker, cfg, web_source):
+    """True when an uploaded HTML/ZIP page mentions `marker` (in an .html/.js file)."""
+    if web_source:
+        return False
+    source = Path(os.environ.get("SOURCE_FILE", "") or "")
+    if not source.is_file():
+        return False
+    name = str(cfg.get("sourceFileName", source.name)).lower().strip()
+    if not name.endswith(".zip"):
+        return marker in source.read_bytes()
+    try:
+        with zipfile.ZipFile(source) as zf:
+            for info in zf.infolist():
+                if info.is_dir() or info.file_size > 20 * 1024 * 1024:
+                    continue
+                if not info.filename.lower().endswith((".html", ".htm", ".js", ".mjs")):
+                    continue
+                if marker in zf.read(info):
+                    return True
+    except (zipfile.BadZipFile, OSError):
+        return False
+    return False
+
+
+def uses_local_files(cfg, web_source):
+    """Library folders on the phone (window.CastelFiles): on when the manifest sets localFiles, or automatically when
+    an uploaded HTML/ZIP page uses window.CastelFiles. No permissions are added either way."""
+    explicit = cfg.get("localFiles")
+    if isinstance(explicit, bool):
+        return explicit
+    return page_uses(FILES_MARKER, cfg, web_source)
 
 
 def uses_media_player(cfg, web_source):
@@ -367,7 +401,14 @@ def generate():
     shutil.copytree(TEMPLATE, output)
     play_billing = bool(cfg.get("playBilling", False))
     media_player = uses_media_player(cfg, web_source)
+    local_files = uses_local_files(cfg, web_source)
     optional_dir = output / "optional"
+    if local_files:
+        # Library folders are only compiled into apps that use them.
+        files_java = optional_dir / "files" / "LocalFiles.java"
+        if not files_java.is_file():
+            fail("LocalFiles.java is missing from the template")
+        shutil.copy2(files_java, next((output / "app" / "src" / "main" / "java").rglob("MainActivity.java")).parent / "LocalFiles.java")
     if media_player:
         # Music support is only compiled into apps that use it.
         media_dir = optional_dir / "media"
@@ -457,6 +498,7 @@ def generate():
         "SPLASH_BADGE": java_bool(cfg.get("brandBadge", False)),
         "PLAY_BILLING": java_bool(play_billing),
         "MEDIA_PLAYER": java_bool(media_player),
+        "LOCAL_FILES": java_bool(local_files),
     }
 
     java_root = output / "app" / "src" / "main" / "java"

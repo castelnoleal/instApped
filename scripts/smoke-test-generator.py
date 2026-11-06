@@ -55,6 +55,8 @@ def run_case(name, package_name, source_type, source_bytes=b"", source_file_name
         assert "MEDIA_PLAYER = false;" in text
         assert not list((output / "app" / "src").rglob("MediaBridge.java")), "Music support must only be compiled in when used"
         assert "READ_MEDIA_AUDIO" not in (output / "app" / "src" / "main" / "AndroidManifest.xml").read_text(encoding="utf-8")
+        assert "LOCAL_FILES = false;" in text
+        assert not list((output / "app" / "src").rglob("LocalFiles.java")), "Library folders must only be compiled in when used"
 
         if source_type.startswith("HTTPS"):
             assert 'webView.loadUrl("https://example.com/")' in text
@@ -241,3 +243,42 @@ def media_case():
 
 media_case()
 print("Music support checks passed.")
+
+
+def files_case():
+    """A page (or a ZIP) that uses window.CastelFiles gets library folders; nothing else changes and no permission is added."""
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        manifest = tmp / "manifest.json"
+        source = tmp / "site.zip"
+        with zipfile.ZipFile(source, "w") as z:
+            z.writestr("index.html", "<!doctype html><html><body><h1>Library</h1><script src=\"app.js\"></script></body></html>")
+            z.writestr("app.js", "if (window.CastelFiles) CastelFiles.ensure('Lib/pics');")
+        manifest.write_text(json.dumps({
+            "appName": "Files Check", "packageName": "com.castel.filescheck", "versionName": "1.0.0", "versionCode": 1,
+            "sourceType": "Uploaded ZIP", "sourceFileName": "site.zip",
+        }), encoding="utf-8")
+        output = tmp / "generated"
+        env = os.environ.copy()
+        env.update(BUILD_MANIFEST=str(manifest), BUILD_OUTPUT=str(output), SOURCE_FILE=str(source), ICON_FILE="", SPLASH_FILE="")
+        subprocess.run(["python3", str(GENERATOR)], cwd=ROOT, env=env, check=True)
+        java_root = output / "app" / "src" / "main" / "java"
+        assert "LOCAL_FILES = true;" in next(java_root.rglob("MainActivity.java")).read_text(encoding="utf-8")
+        assert "package com.castel.filescheck;" in next(java_root.rglob("LocalFiles.java")).read_text(encoding="utf-8")
+        manifest_xml = (output / "app" / "src" / "main" / "AndroidManifest.xml").read_text(encoding="utf-8")
+        assert "MANAGE_EXTERNAL_STORAGE" not in manifest_xml and "READ_MEDIA_AUDIO" not in manifest_xml
+        assert not (output / "optional").exists()
+        # localFiles:false wins over auto-detection.
+        manifest.write_text(json.dumps({
+            "appName": "Files Off", "packageName": "com.castel.filesoff", "versionName": "1.0.0", "versionCode": 1,
+            "sourceType": "Uploaded ZIP", "sourceFileName": "site.zip", "localFiles": False,
+        }), encoding="utf-8")
+        off = tmp / "off"
+        env["BUILD_OUTPUT"] = str(off)
+        subprocess.run(["python3", str(GENERATOR)], cwd=ROOT, env=env, check=True)
+        assert "LOCAL_FILES = false;" in next((off / "app" / "src" / "main" / "java").rglob("MainActivity.java")).read_text(encoding="utf-8")
+        assert not list((off / "app" / "src").rglob("LocalFiles.java"))
+
+
+files_case()
+print("Library folder checks passed.")
