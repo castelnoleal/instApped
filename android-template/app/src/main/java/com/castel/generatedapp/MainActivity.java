@@ -578,7 +578,8 @@ public class MainActivity extends ComponentActivity {
         boolean restored = history != null && history.getSize() > 0;
         Log.i(TAG, "WEBVIEW_READY:" + (restored ? "restored" : "fresh"));
         if (!restored) {
-            webView.post(() -> webView.loadUrl("__TARGET_URL__"));
+            // Android can recreate the screen before this runs (it then has no WebView): skip it there.
+            webView.post(() -> { if (webView != null) webView.loadUrl("__TARGET_URL__"); });
         }
     }
 
