@@ -1,9 +1,17 @@
 {
   "buildId": "6caea695-c0e1-48c2-b805-3a918f06cb8b",
-  "status": "running",
-  "message": "Verifying generated APK and AAB",
-  "progress": 92,
+  "status": "success",
   "runId": 42427395293,
   "runUrl": "https://github.com/castelnoleal/instApped/actions/runs/42427395293",
-  "updatedAt": "2026-11-07T23:58:19Z"
+  "artifactId": 13596177434,
+  "artifactUrl": "https://github.com/castelnoleal/instApped/actions/runs/42427395293/artifacts/13596177434",
+  "buildApkUrl": "https://castel-app-factory-api.nolealtohka.workers.dev/download/6caea695-c0e1-48c2-b805-3a918f06cb8b/apk",
+  "buildAabUrl": "https://castel-app-factory-api.nolealtohka.workers.dev/download/6caea695-c0e1-48c2-b805-3a918f06cb8b/aab",
+  "testBuild": false,
+  "signing": false,
+  "testApkUrl": null,
+  "testAabUrl": null,
+  "apk": "Kodex Mei Production v58.apk",
+  "aab": "Kodex Mei Production v58.aab",
+  "updatedAt": "2026-11-07T23:58:24Z"
 }
