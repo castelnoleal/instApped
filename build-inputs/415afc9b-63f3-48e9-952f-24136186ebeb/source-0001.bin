@@ -1,0 +1,623 @@
+ #8d97a8, #f4f7fb, #8d97a8, #dfe5ee, #8d97a8); }
+.pf-av.fr-gold::before { background: conic-gradient(from 30deg, #a8740b, #ffe08a, #b8860b, #fff1b8, #a8740b); }
+.pf-av.fr-gold::after { opacity: 1; box-shadow: 0 0 10px #f0b42988; }
+.pf-av.fr-platinum::before { background: conic-gradient(from 0deg, #5fd3c4, #f2fffd, #7ab8ff, #f2fffd, #5fd3c4); }
+.pf-av.fr-platinum::after { opacity: 1; box-shadow: 0 0 12px #8be1ffaa; }
+.pf-av.fr-diamond::before { background: conic-gradient(from 0deg, #8be1ff, #b46bff, #ffffff, #6f7dff, #8be1ff); animation: pfSpin 6s linear infinite; }
+.pf-av.fr-diamond::after { opacity: 1; box-shadow: 0 0 14px #8be1ffbb, 0 0 26px #b46bff55; }
+.pf-av.fr-master::before { background: conic-gradient(from 0deg, #e0102a, #ffb347, #fff1b8, #e0102a, #7a0a1a, #e0102a); animation: pfSpin 4s linear infinite; }
+.pf-av.fr-master::after { opacity: 1; box-shadow: 0 0 14px #ff5a3aaa, 0 0 30px #f0b42966; animation: pfPulse 2.4s ease-in-out infinite; }
+.pf-av.fr-premium::before { background: conic-gradient(from 0deg, #f0b429, #ffe08a, #7a4fd6, #b46bff, #ffe08a, #f0b429); animation: pfSpin 3.2s linear infinite; }
+.pf-av.fr-premium::after { opacity: 1; inset: -5px; background: radial-gradient(circle, transparent 58%, #f0b42933 70%, transparent 72%); box-shadow: 0 0 16px #f0b429aa, 0 0 32px #7a4fd666; animation: pfPulse 2s ease-in-out infinite; }
+@keyframes pfSpin { to { transform: rotate(1turn); } }
+@keyframes pfPulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .pf-av::before, .pf-av::after, .pf-banner, .pf-banner i { animation: none !important; } }
+
+.pf-card { --pf-acc: #8d99ff; position: relative; overflow: hidden; border-radius: 18px; border: 1px solid #ffffff1f; background: #0e1228; color: #eef1ff; padding: 0 0 14px; }
+.pf-banner { height: 92px; position: relative; overflow: hidden; background: radial-gradient(120% 140% at 0% 0%, #3347f088, transparent 60%), linear-gradient(135deg, #182152, #0c0f1f); }
+.pf-banner i { position: absolute; inset: 0; }
+.th-ocean .pf-banner { background: linear-gradient(135deg, #0b3a6a, #0e6a8a 55%, #0c1a2b); }
+.th-dusk .pf-banner { background: linear-gradient(135deg, #5a2a6a, #c25a5a 55%, #2b1530); }
+.th-aurora .pf-banner { background: linear-gradient(120deg, #0c2b2a, #1f9d6b, #3347f0, #b46bff, #0c2b2a); background-size: 300% 100%; animation: pfDrift 9s ease-in-out infinite alternate; }
+.th-nebula .pf-banner { background: radial-gradient(60% 90% at 20% 30%, #b46bff99, transparent), radial-gradient(60% 90% at 80% 60%, #2b7fff99, transparent), #090a1f; background-size: 200% 200%; animation: pfDrift 12s ease-in-out infinite alternate; }
+.th-nebula .pf-banner i { background: radial-gradient(1px 1px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 60% 70%, #fff, transparent), radial-gradient(1.5px 1.5px at 80% 20%, #fff, transparent), radial-gradient(1px 1px at 40% 80%, #fff, transparent); animation: pfPulse 3s ease-in-out infinite; }
+.th-inferno .pf-banner { background: linear-gradient(0deg, #e0563a, #7a0a1a 60%, #1a0204); }
+.th-inferno .pf-banner i { background: radial-gradient(30% 60% at 20% 100%, #ffb347aa, transparent), radial-gradient(30% 60% at 60% 100%, #ff5a3aaa, transparent), radial-gradient(25% 50% at 90% 100%, #ffe066aa, transparent); animation: pfFlick 1.6s ease-in-out infinite alternate; }
+.th-royal .pf-banner { background: linear-gradient(110deg, #3a2a05, #b8860b 30%, #fff1b8 45%, #b8860b 60%, #3a2a05); background-size: 250% 100%; animation: pfDrift 5s linear infinite; }
+.th-synapse .pf-banner { background: linear-gradient(135deg, #10163a, #2a1a5a); }
+.th-synapse .pf-banner i { background-image: linear-gradient(#8d99ff33 1px, transparent 1px), linear-gradient(90deg, #8d99ff33 1px, transparent 1px); background-size: 18px 18px; animation: pfGrid 3s linear infinite; }
+@keyframes pfDrift { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+@keyframes pfFlick { from { opacity: .6; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes pfGrid { to { background-position: 18px 18px; } }
+.pf-head { display: flex; align-items: flex-end; gap: 12px; padding: 0 16px; margin-top: -40px; position: relative; }
+.pf-head .pf-av { --pf: 84px; box-shadow: 0 8px 24px #000a; }
+.pf-who { display: grid; gap: 3px; min-width: 0; padding-bottom: 2px; }
+.pf-who b { font-size: 19px; font-weight: 850; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-who > span { color: var(--pf-acc); font-size: 13px; font-weight: 700; }
+.pf-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.pf-tags em { font-style: normal; font-size: 10.5px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: #ffffff14; color: #c9d0ff; }
+.pf-tags .pf-prem { background: linear-gradient(90deg, #ffe08a, #f0b429); color: #140f02; }
+.pf-tags .t-bronze { background: #8a4b2055; color: #f2b88a; } .pf-tags .t-silver { background: #dfe5ee33; color: #f4f7fb; } .pf-tags .t-gold { background: #f0b42933; color: #ffe08a; }
+.pf-tags .t-platinum { background: #5fd3c433; color: #c6fff6; } .pf-tags .t-diamond { background: #8be1ff33; color: #dff7ff; } .pf-tags .t-master { background: #e0102a44; color: #ffd0b0; }
+.pf-bio { margin: 12px 16px 0; color: #c9d0f2; font-size: 13.5px; line-height: 1.5; }
+.pf-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 14px 12px 0; }
+.pf-stats div { display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border-radius: 12px; background: #ffffff0a; border: 1px solid #ffffff12; text-align: center; }
+.pf-stats b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.pf-stats span { font-size: 10px; color: #9aa3c7; line-height: 1.2; }
+
+/* KodeX 9.1 */
+/* help bubble (replaces the filter bubble; filters are in the search bar) */
+#bFil.kx-fil-old{display:none!important}
+.kx-help{position:fixed;right:14px;bottom:calc(var(--nav) + var(--sab) + 14px);z-index:60;width:50px;height:50px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--accent);display:none;place-items:center;padding:0;box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+.kx-help:active{transform:scale(.94)}
+body[data-kxtop=""] .kx-help,body[data-kxtop="detail"] .kx-help{display:grid}
+body[data-kxtop="tool"] .kx-help,body[data-kxtop="dv"] .kx-help{display:grid;bottom:calc(var(--sab) + 16px);width:46px;height:46px}
+body.arena-on .kx-help{display:none!important}
+#bFil2{position:relative}#bFil2 i{position:absolute;top:2px;right:0;min-width:16px;height:16px;border-radius:8px;background:var(--accent);color:#fff;font:700 10px/16px system-ui;font-style:normal;padding:0 4px}
+.kh-s{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:14px;padding:0 12px;background:rgba(255,255,255,.04);margin:4px 0 12px}
+.kh-s input{flex:1;min-width:0;height:44px;border:0;background:none;color:inherit;font:inherit;outline:none}
+.kh-t{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.kh-t button{display:grid;justify-items:start;gap:3px;text-align:left;padding:12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:inherit;font:inherit}
+.kh-t button svg{color:var(--accent);margin-bottom:4px}.kh-t b{font-size:14px}.kh-t small{color:var(--muted);font-size:11.5px;line-height:1.3}
+.kh-r{display:grid;gap:4px;max-height:52vh;overflow-y:auto}
+.kh-r button{display:grid;text-align:left;gap:2px;padding:10px 12px;border-radius:12px;border:1px solid transparent;background:rgba(255,255,255,.04);color:inherit;font:inherit}
+.kh-r button:active,.kh-r button:focus-visible{border-color:var(--accent)}.kh-r small{color:var(--muted);font-size:11.5px}
+.kh-none,.kh-f{color:var(--muted);font-size:12.5px;text-align:center;margin:12px 0 0}.kh-f a{color:var(--accent)}
+.kx-flash{animation:kxFlash 1.6s ease}@keyframes kxFlash{0%,60%{box-shadow:inset 0 0 0 2px var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent)}}
+/* Forbidden & Limited list */
+.kb-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.kb-tabs button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;border-radius:12px;border:1px solid var(--line);background:none;color:inherit;font:600 13px/1.1 inherit}
+.kb-tabs button i{font-style:normal;font-size:11px;opacity:.7}.kb-tabs button.on{color:#fff}
+.kb-tabs button.on.l0{background:#c0263a;border-color:#c0263a}.kb-tabs button.on.l1{background:#c27a14;border-color:#c27a14}.kb-tabs button.on.l2{background:#2b6fd6;border-color:#2b6fd6}
+.kb-l{display:grid;gap:4px;max-height:56vh;overflow-y:auto}
+.kb-c{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:12px;border:0;background:rgba(255,255,255,.04);color:inherit;font:inherit;text-align:left}
+.kb-c:disabled{opacity:1}.kb-c img{width:34px;height:50px;object-fit:cover;border-radius:4px;flex:none}.kb-c span{flex:1;min-width:0;display:grid}
+.kb-c b{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kb-c small{color:var(--muted);font-size:11.5px}
+/* legality tags on every card */
+.tg.lgl{color:#fff;font-weight:800;letter-spacing:.02em;border:0}
+.tg.lgl.l0{background:#c0263a}.tg.lgl.l1{background:#c27a14}.tg.lgl.l2{background:#2b6fd6}
+/* Arena buttons: smaller, so they never cover the opponent's Life Points */
+#Larena .arbar{gap:6px!important}
+#Larena .arbar .ibtn{width:36px;height:36px;min-width:36px;min-height:36px;border-radius:12px;background:rgba(12,16,34,.72);border:1px solid rgba(255,255,255,.12);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#Larena .arbar .ar-min{margin-right:0}
+/* deck: the deck's icon in a banner, tools that wrap (no sideways scrolling) */
+.dk-top{justify-content:space-between}.dk-crumb{flex:1;font-weight:700;color:var(--muted);font-size:14px}
+.dk-hero{position:relative;display:flex;align-items:center;gap:16px;margin:-4px 0 10px;padding:16px;border-radius:20px;overflow:hidden;border:1px solid var(--line);background:radial-gradient(120% 140% at 0% 0%,color-mix(in srgb,var(--accent) 34%,transparent),transparent 62%),linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.01))}
+.dk-hero>:first-child{flex:none;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))}
+.dk-hero .dk-t{display:grid;gap:4px;min-width:0}.dk-hero .dk-t b{font-size:20px;font-weight:850;line-height:1.15;overflow-wrap:anywhere}
+.dk-hero .dk-t small{color:var(--muted);font-size:12.5px}
+.dk-tools{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px}
+.dk-tl{display:grid;justify-items:center;gap:4px;padding:9px 2px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:inherit;font:600 11.5px/1.1 inherit;cursor:pointer;text-align:center}
+.dk-tl svg{color:var(--accent)}.dk-tl:active{transform:scale(.96)}
+@media (max-width:340px){.dk-tools{grid-template-columns:repeat(3,1fr)}}
+.dk-bar{flex-wrap:wrap}.dk-bar>.btn{flex:1 1 auto}
+.active,.sk-row,.az-kr,.st-tabs{flex-wrap:wrap;overflow-x:visible!important}
+/* Settings: the profile card */
+.pfs-card{display:flex;align-items:center;gap:14px;width:100%;padding:14px;border:0;background:radial-gradient(130% 160% at 0% 0%,color-mix(in srgb,var(--accent) 24%,transparent),transparent 60%);color:inherit;font:inherit;text-align:left;border-radius:inherit}
+.pfs-who{flex:1;min-width:0;display:grid;gap:3px}.pfs-who b{font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pfs-who small{color:var(--muted);font-size:12px}.pfs-nx{font-size:11px!important}
+.pfs-bar{display:block;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:3px}.pfs-bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),#f0b429)}
+.pfv-sec{margin:16px 0 8px;font-weight:800;font-size:13px;letter-spacing:.02em}.pfv-sec small{display:block;font-weight:500;color:var(--muted);font-size:11.5px;margin-top:2px;letter-spacing:0}
+.pfv-frames{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
+.pfv-fr{display:grid;justify-items:center;gap:3px;padding:8px 2px;border-radius:12px;background:rgba(255,255,255,.03)}
+.pfv-fr small{font-size:11px;font-weight:700}.pfv-fr em{font-style:normal;font-size:10px;color:var(--muted);min-height:12px}
+.pfv-fr.lock .pf-av{filter:grayscale(1) brightness(.6)}
+.pfv-list{display:grid;gap:3px;padding:12px;border-radius:12px;background:rgba(255,255,255,.04)}.pfv-list small{color:var(--muted);font-size:12px}
+.pfe-prev{margin-bottom:12px}.pfe-prev .pf-card{pointer-events:none}
+.pfe-l{display:grid;gap:5px;font-size:12.5px;font-weight:700;margin-top:10px}.pfe-l .fld{margin:0;font-weight:400}
+.pfe-l textarea{resize:none;min-height:56px;padding-top:10px}
+.pfe-l.row1{display:flex;align-items:center;justify-content:space-between}.pfe-l input[type=color]{width:52px;height:36px;border:1px solid var(--line);border-radius:10px;background:none;padding:2px}
+.pfe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px}
+.pfe-grid.fr{grid-template-columns:repeat(auto-fill,minmax(64px,1fr))}.pfe-grid.th{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
+.pfe-ic,.pfe-fr,.pfe-th{position:relative;display:grid;justify-items:center;gap:4px;padding:6px 2px;border-radius:14px;border:2px solid transparent;background:rgba(255,255,255,.04);color:inherit;font:inherit}
+.pfe-ic img{width:44px;height:44px;border-radius:50%;object-fit:cover;display:block}
+.pfe-ic.on,.pfe-fr.on,.pfe-th.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.pfe-up{align-content:center;min-height:56px;color:var(--accent)}.pfe-ic em,.pfe-fr em,.pfe-th em{font-style:normal;font-size:9.5px;font-weight:800;color:#f0b429}
+.pfe-fr small,.pfe-th small{font-size:11px;font-weight:700}
+.pfe-fr.lock,.pfe-th.lock,.pfe-ic.lock{opacity:.55}.pfe-fr.lock .pf-av{filter:grayscale(1)}
+.pfe-th .pf-card{width:100%;border-radius:10px;padding:0;border:0}.pfe-th .pf-banner{height:38px}
+.pfe-tg{display:flex;gap:12px;align-items:flex-start;margin:16px 0 4px;padding:12px;border-radius:14px;background:rgba(255,255,255,.04)}
+.pfe-tg input{width:20px;height:20px;margin-top:2px;accent-color:var(--accent);flex:none}.pfe-tg span{display:grid;gap:3px}.pfe-tg small{color:var(--muted);font-size:11.5px;line-height:1.4}
+.pfe-th .pf-card,.pfe-th .pf-banner{display:block}.pfe-th .pf-banner i{display:block}
+.kb-tabs button{font-size:12.5px;padding:0 4px;white-space:nowrap}
+body:has(.dragging) .kx-help,body.kx-drag .kx-help{display:none!important}
+</style>
+<script id="kx-v59-late">
+const KXPF=(()=>{
+// Player profiles: icon, frame, title and banner, shown on the Life Point plates and in a profile card.
+// Shared with the KodeX app (its build copies PROFILE_DATA from this file), so both draw profiles the same way.
+// Free players: the MEIOCG icon or a preset, frames unlocked by how much they use KodeX, three plain banners.
+// KodeX Premium: their own picture (GIFs move), the Premium frame, animated banners and an accent colour.
+
+/* PROFILE_DATA_START */
+const PROFILE_DATA = {
+  icons: {
+    star: ["#3347f0", "#7a4fd6", "M12 2.8l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.6l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"],
+    flame: ["#e0563a", "#f0b429", "M12 2.5c1 4 5.5 6 5.5 11a5.5 5.5 0 0 1-11 0c0-2.6 1.4-4.2 2.4-5.3.3 1.9 1.4 3 2.5 3-.9-2.9-.2-5.8.6-8.7z"],
+    crown: ["#b8860b", "#ffe08a", "M3.5 8l4 3.5L12 5l4.5 6.5 4-3.5-1.8 10H5.3z M5.5 20h13"],
+    blade: ["#2b7fff", "#9fe2ff", "M14.5 3.5h6v6L10 20l-2-2-2.5 2.5-2-2L6 16l-2-2z M13 8l3 3"],
+    shield: ["#1f9d6b", "#8be1ff", "M12 2.8l7.5 3v6c0 4.7-3.2 8.2-7.5 9.4-4.3-1.2-7.5-4.7-7.5-9.4v-6z M8.5 12l2.4 2.4L15.6 9.7"],
+    moon: ["#3b2a8a", "#b46bff", "M19.5 14.5A8 8 0 1 1 9.5 4.5a6.4 6.4 0 0 0 10 10z"],
+    sun: ["#f08a29", "#ffe066", "M12 7.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"],
+    bolt: ["#7a4fd6", "#8be1ff", "M13.5 2.5L5 13.5h6l-1 8 8.5-11h-6z"],
+    eye: ["#0f6a8a", "#8be1ff", "M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"],
+    gem: ["#a81a6a", "#ff8dc7", "M6.5 3.5h11l4 5.5L12 21 2.5 9z M2.5 9h19 M9 3.5L12 21l3-17.5"],
+    wing: ["#3a8a9a", "#e0f7ff", "M21 4c-6 .5-11 3-14 8-1.5 2.5-2.5 5-3 8 2-2.5 4.5-3.5 7-3.5-1.5-1-2-2-2-3 3 .5 5.5-.5 7.5-2.5-1.5-.5-2.5-1-3-2 3-.5 5.5-2.5 7.5-5z"],
+    spiral: ["#6a1aa8", "#ffb347", "M12 12m-1.5 0a1.5 1.5 0 1 0 3 0a3 3 0 1 0-6 0a4.5 4.5 0 1 0 9 0a6 6 0 1 0-12 0a7.5 7.5 0 1 0 15 0"],
+  },
+  // frames unlock with activity points (a day you use KodeX: 10, a duel: 4, a deck: 5, cards looked up: up to 300)
+  tiers: [["rookie", "Rookie", 0], ["bronze", "Bronze", 120], ["silver", "Silver", 350], ["gold", "Gold", 800], ["platinum", "Platinum", 1600], ["diamond", "Diamond", 3200], ["master", "Master", 6000]],
+  themes: [["default", "MEIOCG", false], ["ocean", "Ocean", false], ["dusk", "Dusk", false], ["aurora", "Aurora", true], ["nebula", "Nebula", true], ["inferno", "Inferno", true], ["royal", "Royal Gold", true], ["synapse", "Synapse Grid", true]],
+};
+/* PROFILE_DATA_END */
+
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const TIER_IDS = PROFILE_DATA.tiers.map((t) => t[0]);
+const FRAME_IDS = ["none", ...TIER_IDS, "premium"];
+const THEME_IDS = PROFILE_DATA.themes.map((t) => t[0]);
+const tierName = (id) => (PROFILE_DATA.tiers.find((t) => t[0] === id) || ["", "Rookie"])[1];
+
+/** A preset icon as an SVG data URL. */
+function presetIcon(id) {
+  const p = PROFILE_DATA.icons[id];
+  if (!p) return "";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${p[0]}"/><stop offset="1" stop-color="${p[1]}"/></linearGradient></defs><rect width="48" height="48" fill="url(#g)"/><g transform="translate(12 12)" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="${p[2]}"/></g></svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+/** Cleans a profile that came from KodeX or from the other player. */
+function cleanProfile(v, imgOk) {
+  if (!v || typeof v !== "object") return null;
+  const t = (x, n) => String(x == null ? "" : x).replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim().slice(0, n);
+  const premium = v.premium === true;
+  let icon = t(v.icon, 12);
+  const img = premium && icon === "custom" && typeof v.img === "string" && v.img.length < 400000 && (!imgOk || imgOk(v.img)) ? v.img : "";
+  if (icon === "custom" && !img) icon = "meiocg";
+  if (icon !== "custom" && icon !== "meiocg" && !PROFILE_DATA.icons[icon]) icon = "meiocg";
+  let frame = FRAME_IDS.includes(v.frame) ? v.frame : "none";
+  if (frame === "premium" && !premium) frame = "none";
+  const theme = THEME_IDS.includes(v.theme) && (premium || !PROFILE_DATA.themes.find((x) => x[0] === v.theme)[2]) ? v.theme : "default";
+  const n = (x) => Math.max(0, Math.min(1e7, Math.floor(Number(x) || 0)));
+  return { name: t(v.name, 24) || "Duelist", title: t(v.title, 32), bio: t(v.bio, 140), icon, img, frame, theme, premium,
+    tier: TIER_IDS.includes(v.tier) ? v.tier : "rookie", accent: premium && /^#[0-9a-f]{6}$/i.test(v.accent || "") ? v.accent : "",
+    stats: { points: n(v.stats && v.stats.points), days: n(v.stats && v.stats.days), duels: n(v.stats && v.stats.duels), wins: n(v.stats && v.stats.wins) } };
+}
+/** The picture for a profile (MEIOCG logo, a preset or their own). */
+function iconSrc(p, meiocgLogo) {
+  if (!p) return meiocgLogo;
+  if (p.icon === "custom" && p.img) return p.img;
+  return presetIcon(p.icon) || meiocgLogo;
+}
+/** <span class="pf-av fr-…"><img></span> */
+function avatarHTML(p, meiocgLogo, size = 0) {
+  const fr = (p && p.frame) || "none";
+  return `<span class="pf-av fr-${fr}"${size ? ` style="--pf:${size}px"` : ""}><img src="${esc(iconSrc(p, meiocgLogo))}" alt="" draggable="false"></span>`;
+}
+/** The profile card (opened by tapping a player's plate). */
+function cardHTML(p, meiocgLogo, opts = {}) {
+  if (!p) return "";
+  const s = p.stats || {}, rate = s.duels ? Math.round((s.wins / s.duels) * 100) + "%" : "–";
+  return `<div class="pf-card th-${esc(p.theme || "default")}"${p.accent ? ` style="--pf-acc:${esc(p.accent)}"` : ""}>
+    <div class="pf-banner"><i></i></div>
+    <div class="pf-head">${avatarHTML(p, meiocgLogo, 84)}<div class="pf-who"><b>${esc(p.name)}</b>${p.title ? `<span>${esc(p.title)}</span>` : ""}
+      <div class="pf-tags"><em class="pf-tier t-${esc(p.tier)}">${esc(tierName(p.tier))}</em>${p.premium ? '<em class="pf-prem">PREMIUM</em>' : ""}${opts.ai ? '<em class="pf-ai">AI</em>' : ""}</div></div></div>
+    ${p.bio ? `<p class="pf-bio">${esc(p.bio)}</p>` : ""}
+    ${opts.ai ? "" : `<div class="pf-stats"><div><b>${s.days || 0}</b><span>Days on KodeX</span></div><div><b>${s.duels || 0}</b><span>Duels</span></div><div><b>${rate}</b><span>Win rate</span></div><div><b>${s.points || 0}</b><span>Points</span></div></div>`}
+  </div>`;
+}
+
+return{PROFILE_DATA,TIER_IDS,FRAME_IDS,THEME_IDS,tierName,presetIcon,cleanProfile,iconSrc,avatarHTML,cardHTML}})();
+/* KodeX 9.1: player profile (Settings, Arena plates, MEIOCG Players page), help bubble, legality on every card,
+   the Arena gets the KodeX decks, profile and Forbidden & Limited list from the app itself. */
+const KXP_LOGO=()=>{const l=document.querySelector('header .logo img');return l&&l.src||''};
+const KXP_TIERS=KXPF.PROFILE_DATA.tiers;
+function kxpAct(){const a=S.g('pf_act',{});return{days:+a.days||0,last:String(a.last||''),duels:+a.duels||0,wins:+a.wins||0,looks:+a.looks||0}}
+function kxpPoints(a){a=a||kxpAct();return a.days*10+a.duels*4+deckStore().length*5+Math.min(300,a.looks)}
+function kxpTier(p){let t=KXP_TIERS[0];for(const x of KXP_TIERS)if(p>=x[2])t=x;return t}
+function kxpNext(p){return KXP_TIERS.find(x=>x[2]>p)||null}
+function kxpFrames(p){const ok=new Set(['none']);for(const x of KXP_TIERS)if(p>=x[2])ok.add(x[0]);if(PREMIUM)ok.add('premium');return ok}
+function kxpRaw(){const r=S.g('pf',{});return r&&typeof r==='object'&&!Array.isArray(r)?r:{}}
+function kxpImg(){try{return localStorage.getItem('kx_pf_img')||''}catch(e){return ''}}
+/** The player's profile as the Arena and the profile card draw it. */
+function kxProfile(){const r=kxpRaw(),a=kxpAct(),pts=kxpPoints(a),t=kxpTier(pts),fr=kxpFrames(pts);
+ const p=KXPF.cleanProfile({name:r.name||'Duelist',title:r.title||'',bio:r.bio||'',icon:r.icon||'meiocg',img:PREMIUM&&r.icon==='custom'?kxpImg():'',
+  frame:r.frame==null?(PREMIUM?'premium':t[0]):(fr.has(r.frame)?r.frame:t[0]),theme:r.theme||'default',accent:r.accent||'',premium:PREMIUM,tier:t[0],
+  stats:{points:pts,days:a.days,duels:a.duels,wins:a.wins}});return p}
+function kxpSave(r){S.s('pf',r);kxpRefresh();kxpToArena();kxpPing(true)}
+/* activity: a day you open KodeX, each duel (and win) in the Arena, each card you look up */
+(function(){const a=kxpAct(),d=new Date(),day=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();if(a.last!==day){a.days++;a.last=day;S.s('pf_act',a)}})();
+(function(){const o=window.openCard;if(typeof o!=='function')return;window.openCard=function(){try{const a=kxpAct();if(a.looks<300){a.looks++;S.s('pf_act',a)}}catch(e){}return o.apply(this,arguments)}})();
+function kxpDuel(m){if(!m||!m.result)return;const a=kxpAct();a.duels++;if(m.result.win)a.wins++;S.s('pf_act',a);kxpRefresh();kxpToArena();kxpPing()}
+
+/* ---------- Arena: profile, decks and the Forbidden & Limited list come from KodeX (nothing to fetch) ---------- */
+function kxpPost(msg){const f=$('arenaFrame');if(!f||!f.contentWindow)return;try{f.contentWindow.postMessage(msg,'*')}catch(e){}}
+function kxpToArena(){kxpPost({kx:'profile',p:kxProfile()})}
+function kxpDecksToArena(){const out=[];for(const d of deckStore()){const sec=k=>{const a=[];for(const c of d.cards||[]){if(c.section!==k)continue;const n=Number(pcOf(c));if(n>0)for(let i=0;i<Math.max(1,c.qty||1);i++)a.push(n)}return a};const x={name:String(d.name||'Deck').slice(0,60),main:sec('main'),extra:sec('extra'),side:sec('side')};if(x.main.length)out.push(x)}kxpPost({kx:'decks',decks:out.slice(0,200)})}
+function kxpBanToArena(){const map={};for(const c of cards)if(c.ban in BANMAX&&/^\d{3,10}$/.test(String(c.id)))map[c.id]=BANMAX[c.ban];kxpPost({kx:'banlist',map})}
+addEventListener('message',e=>{const f=$('arenaFrame');if(!f||e.source!==f.contentWindow)return;const d=e.data||{};
+ if(d.kx==='ready'){kxpToArena();kxpDecksToArena();kxpBanToArena()}
+ if(d.kx==='stats')kxpDuel(d)});
+{const ss=S.s;let tm=0;S.s=function(k){const r=ss.apply(this,arguments);if(k==='decks'){clearTimeout(tm);tm=setTimeout(()=>{try{kxpDecksToArena();kxpRefresh()}catch(e){}},400)}return r}}
+
+/* ---------- MEIOCG Players page (opt-in) ---------- */
+const KXP_API='https://kodex.meiocg.org/api/players/';
+function kxpId(){let r=kxpRaw();if(!r.id||!r.key){const rnd=n=>{const a=new Uint8Array(n);crypto.getRandomValues(a);return [...a].map(x=>x.toString(36).padStart(2,'0')).join('').slice(0,n)};r={...r,id:rnd(24).replace(/[^a-z0-9]/g,'a'),key:rnd(40).replace(/[^A-Za-z0-9]/g,'k')};S.s('pf',r)}return r}
+async function kxpPing(force){const r=kxpRaw();if(!r.listed||!navigator.onLine)return;const last=+S.g('pf_ping',0);if(!force&&Date.now()-last<5*60e3)return;if(force&&Date.now()-last<4*60e3+5e3)return;
+ const k=kxpId(),p=kxProfile();S.s('pf_ping',Date.now());
+ try{const res=await fetch(KXP_API+'ping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:k.id,key:k.key,name:p.name,title:p.title,bio:p.bio,icon:p.icon,frame:p.frame,tier:p.tier,premium:p.premium,points:p.stats.points,days:p.stats.days,duels:p.stats.duels,wins:p.stats.wins,decks:deckStore().length})});const j=await res.json().catch(()=>({}));if(j&&j.rank){S.s('pf_rank',j.rank);kxpRefresh()}}catch(e){}}
+async function kxpLeave(){const r=kxpRaw();if(!r.id||!r.key)return;try{await fetch(KXP_API+'leave',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:r.id,key:r.key})})}catch(e){}S.s('pf_rank',0);S.s('pf_ping',0)}
+setTimeout(()=>kxpPing(),6000);
+
+/* ---------- Settings: the profile card above Premium ---------- */
+function kxpCardRow(){const p=kxProfile(),pts=p.stats.points,nx=kxpNext(pts),t=kxpTier(pts),pct=nx?Math.round((pts-t[2])/(nx[2]-t[2])*100):100,rank=+S.g('pf_rank',0);
+ return `${KXPF.avatarHTML(p,KXP_LOGO(),56)}<span class="pfs-who"><b>${esc(p.name)}</b><small>${esc(KXPF.tierName(p.tier))} frame · ${pts} points${rank&&kxpRaw().listed?` · #${rank} on MEIOCG Players`:''}</small><span class="pfs-bar" aria-hidden="true"><i style="width:${pct}%"></i></span><small class="pfs-nx">${nx?`${nx[2]-pts} points to ${esc(nx[1])}`:'Every frame unlocked'}</small></span>${ic('back',18).replace('<svg','<svg style="transform:rotate(180deg)"')}`}
+function kxpRefresh(){const b=$('bProfile');if(b)b.innerHTML=kxpCardRow();const h=$('bHelp');if(h)h.dataset.ok='1'}
+(function(){const sb=document.querySelector('#Lset .sb'),prem=sb&&[...sb.querySelectorAll('.sec')].find(x=>x.textContent.trim()==='Premium');if(!sb)return;
+ const sec=document.createElement('div');sec.className='sec';sec.textContent='Profile';const g=document.createElement('div');g.className='grp';
+ g.innerHTML='<button class="pfs-card" id="bProfile" aria-label="Your profile"></button>';sb.insertBefore(sec,prem||sb.firstChild);sb.insertBefore(g,prem||sb.firstChild);
+ $('bProfile').onclick=()=>kxpView();kxpRefresh()})();
+
+function kxpView(){const p=kxProfile(),pts=p.stats.points,fr=kxpFrames(pts),r=kxpRaw();
+ const m=openModal(`<div class="dk-hd"><h3>Your profile</h3><button class="ibtn" data-close aria-label="Close">${ic('x')}</button></div>${KXPF.cardHTML(p,KXP_LOGO())}
+ <div class="pfv-sec">Icon frames <small>Unlock by using KodeX: a day here 10 points, a duel 4, a deck 5, cards you look up 1 each (up to 300).</small></div>
+ <div class="pfv-frames">${['none',...KXP_TIERS.map(x=>x[0]),'premium'].map(f=>{const t=KXP_TIERS.find(x=>x[0]===f),ok=fr.has(f);return `<span class="pfv-fr${ok?'':' lock'}">${KXPF.avatarHTML({...p,frame:f},KXP_LOGO(),44)}<small>${f==='none'?'None':f==='premium'?'Premium':esc(t[1])}</small><em>${ok?'':f==='premium'?'Premium':t[2]+' pts'}</em></span>`}).join('')}</div>
+ <div class="pfv-sec">MEIOCG Players</div><div class="pfv-list">${r.listed?`<b>You're listed${S.g('pf_rank',0)?` · #${S.g('pf_rank',0)}`:''}</b>`:'<b>Not listed</b>'}<small>${r.listed?'Your name, title, icon (presets only), frame and activity show on meiocg.org/players.':'Turn it on in Edit profile to appear on meiocg.org/players. Opt-in; no email or account.'}</small></div>
+ <div class="dact"><button class="btn" data-pfplayers>Players page</button><button class="btn p" data-pfedit>${ic('edit',18)}Edit profile</button></div>`,'big pfv-dlg');
+ m.querySelector('[data-pfedit]').onclick=()=>{closeModal();setTimeout(kxpEdit,180)};
+ m.querySelector('[data-pfplayers]').onclick=()=>openLink('https://meiocg.org/players','MEIOCG Players')}
+
+function kxpEdit(){const r={...kxpRaw()},pts=kxpPoints(),fr=kxpFrames(pts),D=KXPF.PROFILE_DATA,logo=KXP_LOGO();let img=kxpImg();
+ const st={icon:r.icon||'meiocg',frame:r.frame==null?(PREMIUM?'premium':kxpTier(pts)[0]):(fr.has(r.frame)?r.frame:kxpTier(pts)[0]),theme:r.theme||'default',accent:r.accent||'#8d99ff'};
+ if(st.icon==='custom'&&!(PREMIUM&&img))st.icon='meiocg';
+ const icons=['meiocg',...Object.keys(D.icons)];
+ const m=openModal(`<div class="dk-hd"><h3>Edit profile</h3><button class="ibtn" data-close aria-label="Close">${ic('x')}</button></div>
+ <div class="pfe-prev" id="pfePrev"></div>
+ <label class="pfe-l">Name<input class="fld" id="pfeName" maxlength="24" value="${esc(r.name||'')}" placeholder="Duelist"></label>
+ <label class="pfe-l">Title<input class="fld" id="pfeTitle" maxlength="32" value="${esc(r.title||'')}" placeholder="e.g. Ritual main · Manila"></label>
+ <label class="pfe-l">About<textarea class="fld" id="pfeBio" maxlength="140" rows="2" placeholder="A line about you or your deck">${esc(r.bio||'')}</textarea></label>
+ <div class="pfv-sec">Icon${PREMIUM?'':' <small>Free: the MEIOCG icon and presets. KodeX Premium: your own picture or GIF.</small>'}</div>
+ <div class="pfe-grid" id="pfeIcons">${icons.map(i=>`<button type="button" class="pfe-ic" data-ic="${i}" aria-label="${i==='meiocg'?'MEIOCG':i}"><img src="${esc(i==='meiocg'?logo:KXPF.presetIcon(i))}" alt=""></button>`).join('')}<button type="button" class="pfe-ic pfe-up${PREMIUM?'':' lock'}" data-ic="custom" aria-label="Your picture">${PREMIUM&&img?`<img src="${esc(img)}" alt="">`:ic('up',22)}<em>${PREMIUM?'Upload':'Premium'}</em></button><input type="file" id="pfeFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden></div>
+ <div class="pfv-sec">Icon frame <small>${pts} points</small></div>
+ <div class="pfe-grid fr" id="pfeFrames">${['none',...KXP_TIERS.map(x=>x[0]),'premium'].map(f=>{const t=KXP_TIERS.find(x=>x[0]===f);return `<button type="button" class="pfe-fr${fr.has(f)?'':' lock'}" data-fr="${f}"><span class="pfe-fx"></span><small>${f==='none'?'None':f==='premium'?'Premium':esc(t[1])}</small>${fr.has(f)?'':`<em>${f==='premium'?'Premium':t[2]+' pts'}</em>`}</button>`}).join('')}</div>
+ <div class="pfv-sec">Banner${PREMIUM?'':' <small>Animated banners come with KodeX Premium.</small>'}</div>
+ <div class="pfe-grid th" id="pfeThemes">${D.themes.map(([id,l,pr])=>`<button type="button" class="pfe-th th-${id}${pr&&!PREMIUM?' lock':''}" data-th="${id}"><span class="pf-card th-${id}"><span class="pf-banner"><i></i></span></span><small>${esc(l)}</small>${pr&&!PREMIUM?'<em>Premium</em>':''}</button>`).join('')}</div>
+ ${PREMIUM?`<label class="pfe-l row1">Accent colour<input type="color" id="pfeAcc" value="${esc(st.accent)}"></label>`:''}
+ <label class="pfe-tg"><input type="checkbox" id="pfeList"${r.listed?' checked':''}><span><b>Show me on MEIOCG Players</b><small>meiocg.org/players lists active KodeX players. Only your name, title, about, preset icon, frame and activity counts are shared. Turn off to be removed.</small></span></label>
+ <div class="dact"><button class="btn" data-close>Cancel</button><button class="btn p" id="pfeOk">Save</button></div>`,'big pfe-dlg');
+ const q=s=>m.querySelector(s);
+ const draft=()=>KXPF.cleanProfile({name:q('#pfeName').value||'Duelist',title:q('#pfeTitle').value,bio:q('#pfeBio').value,icon:st.icon,img:st.icon==='custom'?img:'',frame:st.frame,theme:st.theme,accent:PREMIUM?st.accent:'',premium:PREMIUM,tier:kxpTier(pts)[0],stats:kxProfile().stats});
+ const paint=()=>{const p=draft();q('#pfePrev').innerHTML=KXPF.cardHTML(p,logo);
+  m.querySelectorAll('[data-ic]').forEach(b=>b.classList.toggle('on',b.dataset.ic===st.icon));
+  m.querySelectorAll('[data-fr]').forEach(b=>{b.classList.toggle('on',b.dataset.fr===st.frame);b.querySelector('.pfe-fx').innerHTML=KXPF.avatarHTML({...p,frame:b.dataset.fr},logo,40)});
+  m.querySelectorAll('[data-th]').forEach(b=>b.classList.toggle('on',b.dataset.th===st.theme))};
+ m.addEventListener('input',paint);
+ m.addEventListener('click',e=>{const b=e.target.closest('[data-ic],[data-fr],[data-th]');if(!b)return;
+  if(b.dataset.ic){if(b.dataset.ic==='custom'){if(!PREMIUM){toast('Your own picture comes with KodeX Premium');return}q('#pfeFile').click();return}st.icon=b.dataset.ic}
+  if(b.dataset.fr){if(!fr.has(b.dataset.fr)){const t=KXP_TIERS.find(x=>x[0]===b.dataset.fr);toast(t?`Unlocks at ${t[2]} points (you have ${pts})`:'The Premium frame comes with KodeX Premium');return}st.frame=b.dataset.fr}
+  if(b.dataset.th){const t=D.themes.find(x=>x[0]===b.dataset.th);if(t[2]&&!PREMIUM){toast('Animated banners come with KodeX Premium');return}st.theme=b.dataset.th}
+  paint()});
+ q('#pfeFile').onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{img=await kxpPicture(f);st.icon='custom';const u=q('.pfe-up');u.innerHTML=`<img src="${esc(img)}" alt=""><em>Upload</em>`;paint()}catch(x){toast(x.message||'That picture could not be used')}};
+ if(q('#pfeAcc'))q('#pfeAcc').oninput=e=>{st.accent=e.target.value;paint()};
+ q('#pfeOk').onclick=()=>{const was=!!r.listed,listed=q('#pfeList').checked,name=q('#pfeName').value.trim();if(listed&&name.length<2){toast('Add a name (2 letters or more) to be listed');return}
+  if(st.icon==='custom'){try{localStorage.setItem('kx_pf_img',img)}catch(x){toast('Not enough space for that picture');return}}
+  kxpSave({...kxpRaw(),name:name.slice(0,24),title:q('#pfeTitle').value.trim().slice(0,32),bio:q('#pfeBio').value.trim().slice(0,140),icon:st.icon,frame:st.frame,theme:st.theme,accent:PREMIUM?st.accent:'',listed});
+  if(listed&&!was){S.s('pf_ping',0);kxpPing()}if(!listed&&was)kxpLeave();
+  closeModal();toast(listed&&!was?'Saved · you\'ll appear on MEIOCG Players shortly':'Profile saved')};
+ paint()}
+/** Premium picture: GIFs under 300 KB stay animated; anything else becomes a 256 px square. */
+function kxpPicture(f){return new Promise((ok,no)=>{if(!/^image\/(png|jpe?g|webp|gif)$/.test(f.type)){no(new Error('Choose a PNG, JPG, WebP or GIF'));return}
+ const rd=new FileReader();rd.onerror=()=>no(new Error('Could not read the file'));rd.onload=()=>{const u=String(rd.result);if(f.type==='image/gif'&&u.length<400000){ok(u);return}
+  const im=new Image();im.onload=()=>{const s=256,c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d'),k=Math.min(im.width,im.height);x.drawImage(im,(im.width-k)/2,(im.height-k)/2,k,k,0,0,s,s);let out=c.toDataURL('image/webp',.86);if(!/^data:image\/webp/.test(out))out=c.toDataURL('image/jpeg',.86);out.length<400000?ok(out):no(new Error('That picture is too large'))};im.onerror=()=>no(new Error('That picture could not be opened'));im.src=u};rd.readAsDataURL(f)})}
+
+/* ---------- Legality on every card ---------- */
+const kxLegal=c=>{const b=c&&c.ban;return b in BANMAX?`<em class="tg lgl l${BANMAX[b]}">${b==='Forbidden'?'Banned':esc(b)}</em>`:''};
+function row(c){
+  const im=S.g('sp',true)&&(c.sm||c.img)?`<img data-id="${esc(c.id)}" src="${esc(c.sm||c.img)}" alt="" loading="lazy" decoding="async">`:'';
+  const ct=cat(c),l=c.lk?'Link '+c.lk:c.rk?'Rank '+c.rk:c.lv?'Level '+c.lv:'',st=[c.atk!=null&&c.atk!==''?'ATK '+c.atk:'',c.lk==null&&c.def!=null&&c.def!==''?'DEF '+c.def:''].filter(Boolean).join(' • ');
+  return `<button class="card" data-id="${esc(c.id)}">${im}<span class="ci"><b class="cn">${esc(c.name)}${isFav(c)?` <span class="fm" aria-label="Favorite">${ic('star',13)}</span>`:''}</b><span class="tags">${kxLegal(c)}<em class="tg ${ct[0].toLowerCase()}">${esc(c.type||'Card')}</em>${c.attr?`<em class="tg">${esc(c.attr)}</em>`:''}</span><span class="meta">${[c.race,l].filter(Boolean).map(esc).join(' • ')}</span>${st?`<span class="meta">${esc(st)}</span>`:''}</span><span class="chev" aria-hidden="true">›</span></button>`;
+}
+
+/* ---------- Help bubble: find any feature, quick settings, the Forbidden & Limited list ---------- */
+const KXH=[
+ ['Search cards','find card name text effect',()=>{const q=$('q');if(q){q.focus();q.select()}}],
+ ['Card filters','filter type attribute level atk def race archetype',()=>$('bFil').click()],
+ ['Scan a card','camera scan photo',()=>{const b=$('bScan');if(b)b.click()}],
+ ['Forbidden & Limited list','banlist banned limited semi-limited ocg legality',()=>kxBanlist()],
+ ['Decks','deck manager builder my decks',()=>$('nDeck').click()],
+ ['New deck','create deck add',()=>{$('nDeck').click();setTimeout(()=>{const b=document.querySelector('[data-dknew]');if(b)b.click()},250)}],
+ ['Paste or import a deck','ydke ydk text list import paste link',()=>{$('nDeck').click();setTimeout(()=>{const b=document.querySelector('[data-dkpaste]');if(b)b.click()},250)}],
+ ['Duel Arena','duel play arena ai online room test hand',()=>openArena('')],
+ ['Your profile','profile icon frame name title avatar players',()=>kxpView()],
+ ['Edit profile','profile edit icon frame banner name',()=>kxpEdit()],
+ ['MEIOCG Players','players ranking leaderboard active',()=>openLink('https://meiocg.org/players','MEIOCG Players')],
+ ['Settings','settings options preferences',()=>$('bSet').click()],
+ ['KodeX Premium','premium ads remove upgrade',()=>{const b=$('bPrem');if(b)b.click();else $('bSet').click()}],
+ ['Search history','history recent',()=>{const b=$('bHis');if(b)b.click()}],
+ ['Advanced ruling search','rulings ruling faq q&a',()=>{const b=$('bAdv');if(b)b.click()}],
+ ['System check','self check diagnostics problem fix',()=>{const b=$('bChk');if(b)b.click()}],
+ ['Email MEIOCG','contact support email help',()=>{location.href='mailto:metainsiderocg@gmail.com?subject=KodeX%20Support'}],
+];
+function kxHelpIndex(){const out=KXH.map(([t,k,f])=>({t,k:(t+' '+k).toLowerCase(),f,g:'KodeX'}));const sb=document.querySelector('#Lset .sb');if(sb){let sec='Settings';for(const el of sb.querySelectorAll('.sec, .row strong, .lnk span, .grp > button span'))if(el.classList.contains('sec'))sec=el.textContent.trim();else{const t=el.textContent.trim();if(t&&t.length<60&&!out.some(o=>o.t===t))out.push({t,k:(t+' '+sec).toLowerCase(),g:'Settings · '+sec,f:()=>kxGoSetting(el)})}}return out}
+function kxGoSetting(el){$('bSet').click();setTimeout(()=>{const r=el.closest('.row,.lnk,button')||el;r.scrollIntoView({block:'center'});r.classList.add('kx-flash');setTimeout(()=>r.classList.remove('kx-flash'),1800)},280)}
+const kxInArena=()=>L.includes('arena')&&$('Larena').classList.contains('open');
+function kxRun(f){closeModal();if(kxInArena()&&f!==kxBanlist&&f!==kxpView){setTimeout(()=>{arenaMin=true;history.back();setTimeout(f,350)},220)}else setTimeout(f,200)}
+function kxHelp(){const arena=kxInArena(),idx=kxHelpIndex();
+ const m=openModal(`<div class="dk-hd"><h3>Help &amp; quick settings</h3><button class="ibtn" data-close aria-label="Close">${ic('x')}</button></div>
+ <div class="kh-s">${ic('search',18)}<input id="khQ" type="search" placeholder="Find a feature or setting" autocomplete="off" aria-label="Find a feature or setting"></div>
+ <div id="khR" class="kh-r" hidden></div>
+ <div id="khT" class="kh-t">
+  <button data-kh="ban">${ic('list',22)}<b>Banlist</b><small>OCG Forbidden &amp; Limited</small></button>
+  <button data-kh="pf">${ic('star',22)}<b>Profile</b><small>Icon, frame, banner</small></button>
+  ${arena?'':`<button data-kh="fil">${ic('search',22)}<b>Filters</b><small>Narrow the card list</small></button>`}
+  <button data-kh="deck">${ic('deck',22)}<b>Decks</b><small>Build, import, analyze</small></button>
+  ${arena?'':`<button data-kh="arena">${ic('play',22)}<b>Duel Arena</b><small>AI or online</small></button>`}
+  <button data-kh="set">${ic('edit',22)}<b>Settings</b><small>Theme, display, offline</small></button>
+ </div>
+ <p class="kh-f">Can't find something? <a href="mailto:metainsiderocg@gmail.com?subject=KodeX%20Help">Email MEIOCG</a></p>`,'big kh-dlg');
+ const R=m.querySelector('#khR'),T=m.querySelector('#khT'),inp=m.querySelector('#khQ');let hits=[];
+ inp.oninput=()=>{const s=inp.value.trim().toLowerCase();if(!s){R.hidden=true;T.hidden=false;return}const w=s.split(/\s+/);hits=idx.filter(o=>w.every(x=>o.k.includes(x))).slice(0,14);R.hidden=false;T.hidden=true;R.innerHTML=hits.length?hits.map((o,i)=>`<button data-hit="${i}"><b>${esc(o.t)}</b><small>${esc(o.g)}</small></button>`).join(''):`<p class="kh-none">Nothing found for “${esc(inp.value)}”. Try another word.</p>`};
+ m.addEventListener('click',e=>{const h=e.target.closest('[data-hit]');if(h){kxRun(hits[+h.dataset.hit].f);return}const t=e.target.closest('[data-kh]');if(!t)return;
+  ({ban:()=>kxRun(kxBanlist),pf:()=>kxRun(kxpView),fil:()=>kxRun(()=>$('bFil').click()),deck:()=>kxRun(()=>$('nDeck').click()),arena:()=>kxRun(()=>openArena('')),set:()=>kxRun(()=>$('bSet').click())})[t.dataset.kh]()});
+ setTimeout(()=>{if(!matchMedia('(pointer:coarse)').matches)inp.focus()},150)}
+function kxBanlist(){const g={Forbidden:[],Limited:[],'Semi-Limited':[]};for(const c of cards)if(g[c.ban])g[c.ban].push(c);for(const k in g)g[k].sort((a,b)=>a.name.localeCompare(b.name));
+ const arena=kxInArena(),tabs=[['Forbidden','Banned'],['Limited','Limited'],['Semi-Limited','Semi-Limited']];let cur='Forbidden';
+ const m=openModal(`<div class="dk-hd"><h3>OCG Forbidden &amp; Limited</h3><button class="ibtn" data-close aria-label="Close">${ic('x')}</button></div>
+ <div class="kb-tabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-kb="${k}" class="l${BANMAX[k]}">${l}<i>${g[k].length}</i></button>`).join('')}</div>
+ <div class="kh-s">${ic('search',18)}<input id="kbQ" type="search" placeholder="Search the list" autocomplete="off" aria-label="Search the list"></div>
+ <div id="kbL" class="kb-l"></div><p class="kh-f">From KodeX's card database; it updates with each card data refresh.</p>`,'big kb-dlg');
+ const list=m.querySelector('#kbL'),inp=m.querySelector('#kbQ');
+ const draw=()=>{const s=inp.value.trim().toLowerCase();m.querySelectorAll('[data-kb]').forEach(b=>b.classList.toggle('on',b.dataset.kb===cur));const xs=(s?[...g.Forbidden,...g.Limited,...g['Semi-Limited']].filter(c=>c.name.toLowerCase().includes(s)):g[cur]);
+  list.innerHTML=xs.length?xs.slice(0,400).map(c=>`<button class="kb-c" data-kbc="${esc(c.id)}"${arena?' disabled':''}>${c.sm||c.img?`<img src="${esc(c.sm||c.img)}" alt="" loading="lazy">`:''}<span><b>${esc(c.name)}</b><small>${esc(c.type||'')}</small></span>${kxLegal(c)}</button>`).join(''):'<p class="kh-none">No cards.</p>'};
+ m.addEventListener('click',e=>{const t=e.target.closest('[data-kb]');if(t){cur=t.dataset.kb;inp.value='';draw();return}const c=e.target.closest('[data-kbc]');if(c&&!arena){closeModal();setTimeout(()=>openCard(c.dataset.kbc),200)}});
+ inp.oninput=draw;draw()}
+(function(){const f=$('bFil');if(!f)return;
+ // the filters move into the search bar; the bubble becomes help
+ const sb=document.querySelector('.searchbox');if(sb&&!$('bFil2')){const b=document.createElement('button');b.id='bFil2';b.className='scanbtn';b.setAttribute('aria-label','Filters');b.innerHTML='<svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg><i id="fc2" hidden>0</i>';b.onclick=()=>f.click();sb.appendChild(b);
+  const sync=()=>{const fc=$('fc'),c2=$('fc2');if(fc&&c2){c2.hidden=fc.hidden;c2.textContent=fc.textContent}};new MutationObserver(sync).observe($('fc'),{attributes:true,childList:true,characterData:true,subtree:true});sync()}
+ f.classList.add('kx-fil-old');
+ const h=document.createElement('button');h.id='bHelp';h.className='kx-help';h.setAttribute('aria-label','Help and quick settings');h.setAttribute('aria-haspopup','dialog');h.innerHTML='<svg class="i" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M9.4 9.3a2.7 2.7 0 0 1 5.2 1c0 1.9-2.6 2.4-2.6 4"/><circle cx="12" cy="17.4" r=".6" fill="currentColor"/></svg>';h.onclick=kxHelp;document.body.appendChild(h);
+ const bar=document.querySelector('#Larena .arbar'),mn=$('arMin');if(bar){const a=document.createElement('button');a.className='ibtn ar-help';a.id='arHelp';a.setAttribute('aria-label','Help and quick settings');a.innerHTML=h.innerHTML.replace('width="24" height="24"','width="21" height="21"');a.onclick=kxHelp;bar.insertBefore(a,mn||bar.querySelector('[data-close]'))}
+ const where=()=>{const t=L[L.length-1]||'';document.body.dataset.kxtop=t.startsWith('m:')?'modal':t};const o=window.navSync;if(typeof o==='function')window.navSync=function(){const r=o.apply(this,arguments);where();return r};where()})();
+addEventListener('dragstart',()=>document.body.classList.add('kx-drag'),true);for(const t of ['dragend','drop'])addEventListener(t,()=>document.body.classList.remove('kx-drag'),true);
+
+</script>
+<style id="kx-v60">/* KodeX 9.3 · module: premium-pitch-and-trial (styles) */
+html.kx-trial #topAdSlot{display:none!important}html.kx-trial .top-ad-safe-area{padding:var(--sat) 0 0!important}
+.pz{display:grid;gap:12px}
+.pz-hero{position:relative;overflow:hidden;border-radius:22px;padding:22px 18px 18px;min-height:250px;background:radial-gradient(120% 90% at 100% 0%,#7a4fd6aa,transparent 60%),radial-gradient(100% 80% at 0% 100%,#f0b42955,transparent 60%),linear-gradient(150deg,#141b4a,#0b0f26 70%);border:1px solid #f0b42966;box-shadow:0 20px 50px #0008,inset 0 0 0 1px #ffffff10;isolation:isolate}
+.pz-hero::before{content:"";position:absolute;inset:-40%;z-index:-1;background:conic-gradient(from 0deg,transparent,#8d99ff33,transparent 30%,#f0b42933,transparent 60%);animation:pzSpin 9s linear infinite}
+@keyframes pzSpin{to{transform:rotate(1turn)}}
+.pz-fan{position:absolute;right:-6px;top:16px;width:150px;height:200px;pointer-events:none}
+.pz-fan img{position:absolute;top:0;right:24px;width:96px;aspect-ratio:59/86;object-fit:cover;border-radius:7px;box-shadow:0 0 0 2px #fff,0 12px 28px #000a,0 0 30px #f0b42966;transform-origin:50% 120%;animation:pzFloat 5s ease-in-out infinite}
+.pz-fan .f0{transform:rotate(-16deg) translateX(-34px);animation-delay:-1.2s}.pz-fan .f1{transform:rotate(-2deg);z-index:2;animation-delay:-2.4s}.pz-fan .f2{transform:rotate(13deg) translateX(30px) translateY(10px);animation-delay:-3.6s}
+@keyframes pzFloat{50%{translate:0 -6px}}
+.pz-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:linear-gradient(90deg,#ffe08a,#f0b429);color:#1a1202;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.pz-h{margin:12px 0 6px;max-width:58%;font-size:26px;line-height:1.05;font-weight:900;letter-spacing:-.01em;background:linear-gradient(180deg,#fff,#c9d2ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pz-p{margin:0;max-width:60%;color:#c9d0f2;font-size:13.5px;line-height:1.45}
+.pz-cta{display:grid;gap:8px;margin-top:16px}
+.pz-cta .btn{width:100%;min-height:48px;font-size:15px;font-weight:850;border-radius:14px}
+.pz-try{background:linear-gradient(90deg,#ffe08a,#f0b429);color:#1a1202;border:0;box-shadow:0 8px 24px #f0b42955;animation:pzPulse 2.4s ease-in-out infinite}
+@keyframes pzPulse{50%{box-shadow:0 8px 34px #f0b429aa}}
+.pz-fine{display:block;margin-top:8px;color:#9aa3c7;font-size:11.5px;text-align:center}
+.pz-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pz-t{position:relative;display:grid;gap:3px;text-align:left;padding:12px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.01));color:inherit;font:inherit}
+.pz-t b{font-size:13.5px}.pz-t small{color:var(--muted);font-size:11.5px;line-height:1.3}.pz-t em{font-style:normal;display:inline-flex;align-items:center;gap:4px;margin-top:4px;color:#f0b429;font-weight:800;font-size:11px}
+.pz-cmp{border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.pz-row{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:6px;padding:9px 12px;font-size:12.5px;border-top:1px solid var(--line)}.pz-row:first-child{border-top:0}
+.pz-row.h{background:rgba(255,255,255,.04)}.pz-row.h b:last-child{color:#f0b429}.pz-row i{font-style:normal;color:var(--muted)}.pz-row i.y{color:#ffe08a;font-weight:800}
+.pz-more{border:1px solid var(--line);border-radius:14px;padding:10px 12px}.pz-more summary{cursor:pointer;font-weight:800;font-size:13px}.pz-more .pcard{margin-top:10px}
+.pz-trial{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 10px;padding:12px 14px;border-radius:14px;background:linear-gradient(90deg,#f0b42922,#7a4fd622);border:1px solid #f0b42966}
+.pz-trial b{display:inline-flex;align-items:center;gap:6px;color:#ffe08a}.pz-trial span{flex:1;color:var(--muted);font-size:13px}.pz-trial .btn{min-height:38px}
+@media (prefers-reduced-motion:reduce){.pz-hero::before,.pz-fan img,.pz-try{animation:none}}
+.pz-fan{width:118px;height:170px;right:-2px;top:18px}.pz-fan img{width:72px;right:18px}
+.pz-fan .f0{transform:rotate(-14deg) translateX(-22px)}.pz-fan .f2{transform:rotate(12deg) translateX(20px) translateY(8px)}
+.pz-h,.pz-p{max-width:calc(100% - 112px)}.pz-h{font-size:24px}
+</style>
+<script id="kx-v60-late">
+/* ===================================================================================================================
+   KodeX 9.3 · module: premium-pitch-and-trial
+   Blueprint: app/BLUEPRINT.md. KodeX is created by Castel Noleal, creator of MEIOCG (Meta Insider OCG).
+   - KodeX Premium pitch in Settings (free edition): an ad-style card with real card art, a 5-day trial and the CTA.
+   - 5-day KodeX Premium trial: started once per install from the pitch; the free app then runs as Premium (no ads,
+     every Premium feature) and turns back to free on its own when the 5 days are over (KX_TRIAL, set before PREMIUM).
+   =================================================================================================================== */
+const KODEX_BLUEPRINT=Object.freeze({app:'Duel Synapse: KodeX',creator:'Castel Noleal',role:'Creator of MEIOCG (Meta Insider OCG)',since:2023,
+ contact:'metainsiderocg@gmail.com',doc:'app/BLUEPRINT.md'});
+const KX_TRIAL_DAYS=5;
+const kxIsEdPremium=()=>((document.querySelector('meta[name=kodex-edition]')||{}).content)==='premium';
+function kxTrialLeft(){const h=Math.max(0,Math.floor(KX_TRIAL.left/36e5)),d=Math.floor(h/24);return d?`${d} day${d>1?'s':''} ${h%24} h`:`${h} h`}
+function kxStartTrial(){if(kxIsEdPremium())return;if(KX_TRIAL.used){toast('Your free trial has already been used on this device');return}
+ const m=openModal(`<div class="dk-hd"><h3>Start your 5-day Premium trial?</h3><button class="ibtn" data-close aria-label="Close">${ic('x')}</button></div>
+ <p class="note">Every KodeX Premium feature, with no ads, for ${KX_TRIAL_DAYS} days. It ends on its own after that; nothing is charged and no account is needed. One trial per device.</p>
+ <div class="dact"><button class="btn" data-close>Not now</button><button class="btn p" id="ktGo">Start free trial</button></div>`,'','trial');
+ m.querySelector('#ktGo').onclick=()=>{try{localStorage.setItem('kx_trial',JSON.stringify({start:Date.now(),v:1}))}catch(e){toast('Could not start the trial (storage is full or blocked)');return}
+  try{kv('put','kx_trial_bk',{start:Date.now()})}catch(e){}closeModal();toast('KodeX Premium trial started · restarting…');setTimeout(()=>location.reload(),700)}}
+function kxPitchArt(){const want=['Blue-Eyes White Dragon','Dark Magician','Ash Blossom & Joyous Spring','Accesscode Talker','Maxx "C"','Snake-Eye Ash','Dark Magician Girl','Red-Eyes Black Dragon'];
+ const by=n=>cards.find(c=>c.name===n&&(c.img||c.sm));const out=[];for(const n of want){const c=by(n);if(c)out.push(c);if(out.length===3)break}
+ for(const c of cards){if(out.length>=3)break;if((c.img||c.sm)&&/Monster/.test(c.type||'')&&!out.includes(c))out.push(c)}
+ return out.map(c=>({src:c.img||c.sm,name:c.name}))}
+function premiumCardV60(){const art=kxPitchArt(),used=KX_TRIAL.used&&!KX_TRIAL.active;
+ const tiles=[['Ace showdowns','Your best cards take over the screen','show','destiny','ace'],['Finishing moves','Shatter, Meteor, Thunder and more','fin','thunder',''],['Grand entrances','Portal, Storm, Inferno, Nova','mv','portal','ent'],['Winning showdowns','Domain Expansion, Time Stop…','show','domain','finale'],['Your profile','Own picture, animated banner, Premium frame','',''],['No ads','The sponsor strip is gone','',''],['Unlimited card scanner','Free: 4 scans a day','',''],['Skins & sounds','Sleeves, fields, emotes, music','','']];
+ return `<div class="pz">
+ <div class="pz-hero">
+  <div class="pz-fan" aria-hidden="true">${art.map((a,i)=>`<img class="f${i}" src="${esc(a.src)}" alt="" loading="lazy">`).join('')}</div>
+  <span class="pz-tag">${ic('star',14)} KodeX Premium</span>
+  <h3 class="pz-h">Duel like it's the finals.</h3>
+  <p class="pz-p">Ace showdowns, finishing moves, your own profile, skins and sounds, and no ads.</p>
+  <div class="pz-cta">${used?'':`<button class="btn pz-try" data-trial>Try Premium free · ${KX_TRIAL_DAYS} days</button>`}<button class="btn p pz-buy" data-getprem>Get KodeX Premium</button></div>
+  <small class="pz-fine">${used?'Your free trial has ended. Premium keeps every feature on, for good.':'No account, nothing charged. The trial ends on its own after 5 days.'}</small>
+ </div>
+ <div class="pz-grid">${tiles.map(([t,d,k,v,kk])=>`<button type="button" class="pz-t"${k==='show'?` data-show="${v}" data-showk="${kk}"`:k==='fin'?` data-fin="${v}"`:k==='mv'?` data-mv="${v}" data-mvk="${kk}"`:''}><b>${t}</b><small>${d}</small>${k?`<em>${ic('play',12)} Preview</em>`:''}</button>`).join('')}</div>
+ <div class="pz-cmp"><div class="pz-row h"><span></span><b>Free</b><b>Premium</b></div>${[['Ads','Yes','None'],['Card scans','4 a day','Unlimited'],['Winning showdowns','Menacing','13 + Random'],['Ace cards','–','✓'],['Profile','Presets','Own picture, animated']].map(r=>`<div class="pz-row"><span>${r[0]}</span><i>${r[1]}</i><i class="y">${r[2]}</i></div>`).join('')}</div>
+ <details class="pz-more"><summary>Everything in Premium, with previews</summary>${typeof premiumCardV59==='function'?premiumCardV59():''}</details>
+ <p class="scan-left">Free card scans left today: ${Math.max(0,4-scanUses().length)} of 4</p></div>`}
+{const b=window.bindPremiumCard;if(typeof b==='function')window.bindPremiumCard=function(root){b.apply(this,arguments);root.querySelectorAll('[data-trial]').forEach(x=>x.onclick=kxStartTrial)}}
+/* the pitch box in Settings was drawn before this module loaded: draw it again */
+{const bp=$('bPrem'),box=bp&&bp.previousElementSibling;if(!PREMIUM&&box&&!box.id&&box.tagName==='DIV'){box.innerHTML=premiumCard();bindPremiumCard(box)}}
+/* Settings: the trial banner while it runs; a notice when it ends */
+(function(){if(kxIsEdPremium())return;
+ if(KX_TRIAL.active){const sb=document.querySelector('#Lset .sb'),prem=sb&&[...sb.querySelectorAll('.sec')].find(x=>x.textContent.trim()==='Premium');
+  if(prem){const d=document.createElement('div');d.className='pz-trial';d.innerHTML=`<b>${ic('star',16)} Premium trial</b><span>${kxTrialLeft()} left</span><button class="btn p" data-getprem>Keep Premium</button>`;prem.after(d);d.querySelector('[data-getprem]').onclick=()=>{try{window.open(PREMIUM_URL,'_blank','noopener')}catch(e){location.href=PREMIUM_URL}}}
+  // the trial ends while the app is open: back to free at the next quiet moment
+  setTimeout(()=>{toast('Your KodeX Premium trial has ended');setTimeout(()=>location.reload(),2500)},Math.min(KX_TRIAL.left,2147e6))}
+ else if(KX_TRIAL.used&&!S.g('kx_trial_seen',false)){S.s('kx_trial_seen',true);setTimeout(()=>{const m=openModal(`<div class="dk-hd"><h3>Your Premium trial has ended</h3><button class="ibtn" data-close aria-label="Close">${ic('x')}</button></div><p class="note">Thanks for trying KodeX Premium. Your decks, profile and settings are all still here; Premium features are off until you get KodeX Premium.</p><div class="dact"><button class="btn" data-close>Maybe later</button><button class="btn p" data-getprem>Get KodeX Premium</button></div>`,'','trialend');m.querySelector('[data-getprem]').onclick=()=>{try{window.open(PREMIUM_URL,'_blank','noopener')}catch(e){location.href=PREMIUM_URL}}},1500)}
+ // a cleared localStorage keeps the trial used (IndexedDB copy)
+ if(!KX_TRIAL.used)kv('get','kx_trial_bk').then(v=>{if(v&&v.start){try{localStorage.setItem('kx_trial',JSON.stringify({start:v.start,v:1}))}catch(e){}if(Date.now()-v.start<KX_TRIAL_DAYS*864e5)location.reload()}}).catch(()=>{})})();
+
+/* MEIOCG Players: the ping also sends the banner, and keeps the public profile id for "View my public profile" */
+{const f0=window.fetch;window.fetch=function(u,o){if(typeof u==='string'&&/\/api\/players\/ping$/.test(u)&&o&&typeof o.body==='string'){try{const b=JSON.parse(o.body);b.theme=kxProfile().theme;o={...o,body:JSON.stringify(b)}}catch(e){}
+  return f0.call(this,u,o).then(r=>{try{r.clone().json().then(j=>{if(j&&j.pid){S.s('pf_pid',j.pid)}}).catch(()=>{})}catch(e){}return r})}return f0.apply(this,arguments)}}
+{const v=window.kxpView;if(typeof v==='function')window.kxpView=function(){v.apply(this,arguments);const pid=S.g('pf_pid',''),m=[...document.querySelectorAll('.mdl')].pop();if(!m||!pid||!kxpRaw().listed)return;const a=m.querySelector('[data-pfplayers]');if(a){a.textContent='My public profile';a.onclick=()=>openLink('https://kodex.meiocg.org/players#'+pid,'MEIOCG Players')}}}
+
+/* "More about KodeX Premium": the full list is open there */
+{const o=window.openPremiumInfo;if(typeof o==='function')window.openPremiumInfo=function(){o.apply(this,arguments);document.querySelectorAll('#tb .pz-more').forEach(d=>d.open=true)}}
+
+</script><style id="kx-v61">/* KodeX 9.4 (v61): deck image options */
+.mdl[data-k=pm] .di-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.di-prev{position:sticky;top:0;display:flex;flex-direction:column;gap:6px;align-items:center}
+.di-prev .di-svg{width:100%;aspect-ratio:1;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px #0006;background:#0c0f1f}
+.di-prev .di-svg svg{display:block;width:100%;height:100%}
+.di-prev small{opacity:.65;font-size:12px}
+.di-wrap>*,.di-2>*{min-width:0}
+.di-f input,.di-f select{width:100%;min-width:0;box-sizing:border-box}
+.di-f{display:flex;flex-direction:column;gap:10px}
+.di-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.di-des{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.di-des button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px;border-radius:12px;border:1.5px solid #ffffff22;background:#ffffff0a;color:inherit;font-size:12px;font-weight:600;line-height:1.2;min-width:0;cursor:pointer}
+.di-des button.on{border-color:#f0b429;box-shadow:0 0 0 2px #f0b42944}
+.di-sw{display:block;width:100%;height:30px;border-radius:7px}
+.di-sw.di-clean{background:linear-gradient(#3347f0 0 4px,#fff 4px);box-shadow:inset 0 0 0 1px #0002}
+.di-sw.di-night{background:linear-gradient(135deg,#121a4a,#0c0f1f 60%,#1c1236);box-shadow:inset 0 0 0 1.5px #7a4fd6}
+.di-sw.di-gold{background:linear-gradient(135deg,#241a08,#0b0906);box-shadow:inset 0 0 0 1.5px #ffd45a}
+@media (max-width:760px){.mdl[data-k=pm] .di-wrap{grid-template-columns:1fr}.di-prev{position:static}.di-prev .di-svg{max-width:340px}}
+</style>
+<script id="kx-v61-late">
+/* KodeX 9.4 (v61): square deck images with three designs and an editable preset, and saving Arena video clips.
+   Created by Castel Noleal, creator of MEIOCG. See app/BLUEPRINT.md. */
+
+/* ---------- Arena video clips (KodeX Premium): the Arena records, KodeX saves the file ---------- */
+addEventListener('message',e=>{const f=$('arenaFrame');if(!f||e.source!==f.contentWindow)return;const d=e.data||{};
+ if(d.kx!=='saveVideo')return;
+ if(!PREMIUM){toast('Video clips are part of KodeX Premium');return}
+ const buf=d.buf;if(!(buf instanceof ArrayBuffer)||buf.byteLength<1000||buf.byteLength>4e8){toast('That clip could not be saved');return}
+ const mime=/^video\/(mp4|webm)/.test(String(d.mime))?String(d.mime).split(';')[0]:'video/webm',ext=mime==='video/mp4'?'mp4':'webm';
+ let nm=String(d.name||'KodeX_clip').replace(/[\\/:*?"<>|]/g,'_').replace(/\.(mp4|webm)$/i,'').slice(0,80)+'.'+ext;
+ toast('Saving the clip…');saveFile(new Blob([buf],{type:mime}),nm,mime).catch(()=>toast('That clip could not be saved'));
+});
+
+/* ---------- Deck image: square, dated, with the MEIOCG profile and an editable preset ---------- */
+const DI_SIZE=1600;
+const DI_DESIGNS=[
+ ['clean','Clean','White sheet, like a deck list from the deck maker'],
+ ['night','MEIOCG Night','Dark blue MEIOCG look'],
+ ['gold','Champion Gold','Black and gold, made for tournament results'],
+];
+const DI_PAL={
+ clean:{bg:'#ffffff',bg2:'#f3f5fb',ink:'#11152b',sub:'#4c5674',mute:'#8790ab',line:'#dfe3ef',head:'#eef1f9',accent:'#3347f0',accent2:'#7a4fd6',gold:'#c48a00',slot:'#e6e9f3',grid:false},
+ night:{bg:'#0c0f1f',bg2:'#121a4a',ink:'#ffffff',sub:'#c9d0f2',mute:'#8d97bb',line:'#2f3a86',head:'#151a3a',accent:'#3347f0',accent2:'#7a4fd6',gold:'#f0b429',slot:'#1b2147',grid:true},
+ gold:{bg:'#0b0906',bg2:'#241a08',ink:'#fff6dc',sub:'#e8d29a',mute:'#a8956a',line:'#5a4612',head:'#1a1408',accent:'#b8860b',accent2:'#ffe08a',gold:'#ffd45a',slot:'#221b0c',grid:false},
+};
+const DI_FRAME={rookie:['#8a96b4','#4c5878'],bronze:['#e0a070','#8a4b20'],silver:['#f4f7fb','#8d97a8'],gold:['#ffe08a','#a8740b'],platinum:['#f2fffd','#5fd3c4'],diamond:['#8be1ff','#b46bff'],master:['#ffb347','#e0102a'],premium:['#f0b429','#7a4fd6'],none:['#9aa4bd','#5c6684']};
+function diToday(){const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}
+function diDateText(v){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||'');const dt=m?new Date(+m[1],+m[2]-1,+m[3]):new Date();return dt.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'})}
+/** The player's MEIOCG profile when they have set one up (a name, or listed on MEIOCG Players). */
+function diProfile(){try{const r=kxpRaw();if(!r.name&&!r.listed)return null;const p=kxProfile();return{name:p.name,title:p.title,frame:p.frame,tier:p.tier,premium:p.premium,
+ src:KXPF.iconSrc(p,KXP_LOGO()),rank:r.listed?+S.g('pf_rank',0):0}}catch(e){return null}}
+/** The preset: what the last image used, with the deck's own name, today's date and the profile name filled in. */
+function diPreset(d){const p=S.g('poster_meta',{})||{},pf=diProfile(),mon=new Date().toLocaleDateString(undefined,{month:'short',year:'numeric'});
+ return{design:DI_DESIGNS.some(x=>x[0]===p.design)?p.design:'clean',title:String(d.name||'Deck').slice(0,40),reg:p.reg||('OCG · Forbidden & Limited · '+mon),
+  player:p.player||(pf?pf.name:''),event:p.event||'',place:p.place||'',note:'',date:diToday(),profile:p.profile!==false,types:p.types!==false}}
+/** Card width that fits every section in the square: Main across the full width, Extra and Side side by side. */
+function diLayout(d,W,top,bottom){const pad=56,gap=8,secH=54,main=copies(d,'main'),ex=copies(d,'extra'),side=copies(d,'side'),split=ex.length&&side.length;
+ const avail=bottom-top;let best=null;
+ const fw=W-pad*2;
+ for(const cols of [10,11,12,13,14,15,16,18,20,22,24]){const cw=Math.floor((fw-gap*(cols-1))/cols),ch=Math.round(cw*86/59),full=cols,half=Math.floor(((fw-36)/2+gap)/(cw+gap));if(half<1)continue;
+  const rM=Math.max(1,Math.ceil(main.length/full)),rE=ex.length?Math.ceil(ex.length/(split?half:full)):0,rS=side.length?Math.ceil(side.length/(split?half:full)):0;
+  const lower=split?secH+Math.max(rE,rS)*(ch+gap):(ex.length?secH+rE*(ch+gap)+14:0)+(side.length?secH+rS*(ch+gap)+14:0);
+  const h=secH+rM*(ch+gap)+18+lower;if(h<=avail){best={cw,ch,gap,pad,secH,full,half,split,main,ex,side};break}}
+ if(!best){const cw=34,ch=Math.round(cw*86/59);best={cw,ch,gap:6,pad,secH,full:Math.floor((W-pad*2)/(cw+6)),half:Math.floor(((W-pad*2-36)/2)/(cw+6)),split,main,ex,side}}
+ return best}
+function buildSquareDeckSvg(d,meta,bg){
+ meta=meta||diPreset(d);const W=DI_SIZE,H=DI_SIZE,P=DI_PAL[meta.design]||DI_PAL.clean,X=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+ const F="'Chakra Petch','Plus Jakarta Sans',Arial,sans-serif",B="'Plus Jakarta Sans','Chakra Petch',Arial,sans-serif";
+ const kind=c=>{const t=String((resolveDeckCard(c)||{}).type||'').toLowerCase();return /spell/.test(t)?'S':/trap/.test(t)?'T':'M'};
+ const pf=meta.profile?diProfile():null,pc=PLACE_COL[meta.place],pl=(PLACES.find(x=>x[0]===meta.place)||['',''])[1];
+ const pad=56,right=pf||pc?430:0,tw=W-pad*2-right,title=String(meta.title||d.name||'Deck'),ts=Math.max(40,Math.min(76,Math.floor(tw/(title.length*.62))));
+ const top0=(meta.note?268:238)+ts,L=diLayout(d,W,top0,H-92),{cw,ch,gap}=L;
+ const o=[`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`,
+ `<defs><linearGradient id="dg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${P.bg2}"/><stop offset=".6" stop-color="${P.bg}"/><stop offset="1" stop-color="${P.bg}"/></linearGradient>`+
+ `<linearGradient id="da" x1="0" x2="1"><stop offset="0" stop-color="${P.accent}"/><stop offset=".6" stop-color="${P.accent2}"/><stop offset="1" stop-color="${P.gold}"/></linearGradient>`+
+ (pf?`<linearGradient id="dfr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${(DI_FRAME[pf.frame]||DI_FRAME.none)[0]}"/><stop offset="1" stop-color="${(DI_FRAME[pf.frame]||DI_FRAME.none)[1]}"/></linearGradient><clipPath id="dav"><circle cx="0" cy="0" r="44"/></clipPath>`:'')+
+ (pc?`<linearGradient id="dpl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${pc[1]}"/><stop offset="1" stop-color="${pc[0]}"/></linearGradient>`:'')+
+ `<pattern id="dgr" width="58" height="84" patternUnits="userSpaceOnUse"><path d="M58 0H0V84" fill="none" stroke="#ffffff" stroke-opacity=".045"/></pattern><clipPath id="dcc"><rect width="${cw}" height="${ch}" rx="${Math.max(3,cw*.05)}"/></clipPath></defs>`,
+ `<rect width="${W}" height="${H}" fill="${meta.design==='clean'?P.bg:'url(#dg)'}"/>`];
+ if(bg&&meta.design!=='clean')o.push(`<image href="${X(bg)}" xlink:href="${X(bg)}" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice" opacity=".22"/>`);
+ if(P.grid)o.push(`<rect width="${W}" height="${H}" fill="url(#dgr)"/>`);
+ if(meta.design==='clean')o.push(`<rect x="0" y="0" width="${W}" height="10" fill="url(#da)"/>`);
+ else o.push(`<rect x="16" y="16" width="${W-32}" height="${H-32}" rx="28" fill="none" stroke="url(#da)" stroke-width="3"/>`);
+ // header: title, regulation, player · event, date; the counts; the profile on the right
+ o.push(`<g font-family="${F}" fill="${P.ink}">`,
+  `<text x="${pad}" y="70" font-size="20" font-weight="700" letter-spacing="5" fill="${P.gold}">DUEL SYNAPSE · KODEX</text>`,
+  `<text x="${pad}" y="${80+ts}" font-size="${ts}" font-weight="800">${X(title.slice(0,40))}</text>`,
+  meta.reg?`<text x="${pad}" y="${120+ts}" font-family="${B}" font-size="24" font-weight="700" fill="${P.sub}">${X(meta.reg)}</text>`:'',
+  `<text x="${pad}" y="${156+ts}" font-family="${B}" font-size="22" fill="${P.mute}">${X([meta.player,meta.event].filter(Boolean).join('  ·  '))}${meta.player||meta.event?'  ·  ':''}${X(diDateText(meta.date))}</text>`,
+  meta.note?`<text x="${pad}" y="${190+ts}" font-family="${B}" font-size="20" font-style="italic" fill="${P.mute}">${X(meta.note.slice(0,110))}</text>`:'','</g>');
+ // the counts, as chips under the header
+ const cy0=(meta.note?208:178)+ts;let cx=pad;
+ for(const [lab,arr] of [['Main',L.main],['Extra',L.ex],['Side',L.side]]){if(lab==='Side'&&!arr.length)continue;const w=lab.length*13+String(arr.length).length*15+46;
+  o.push(`<rect x="${cx}" y="${cy0}" width="${w}" height="40" rx="20" fill="${P.head}" stroke="${P.line}"/><text x="${cx+18}" y="${cy0+27}" font-family="${F}" font-size="20" font-weight="700" fill="${P.sub}">${lab} <tspan fill="${P.accent===P.gold?P.gold:meta.design==='clean'?P.accent:P.gold}" font-weight="800">${arr.length}</tspan></text>`);cx+=w+10}
+ if(pf){const ax=W-pad-44,ay=96;
+  o.push(`<g transform="translate(${ax},${ay})"><circle r="52" fill="url(#dfr)"/><circle r="46" fill="${P.bg}"/><image href="${X(pf.src)}" xlink:href="${X(pf.src)}" x="-44" y="-44" width="88" height="88" clip-path="url(#dav)" preserveAspectRatio="xMidYMid slice"/></g>`,
+  `<g font-family="${F}" text-anchor="end"><text x="${ax-66}" y="${ay-12}" font-size="28" font-weight="800" fill="${P.ink}">${X(pf.name)}</text>`,
+  `<text x="${ax-66}" y="${ay+18}" font-family="${B}" font-size="19" fill="${P.sub}">${X(pf.title||((KXPF.tierName(pf.tier)||'')+' duelist'))}</text>`,
+  `<text x="${ax-66}" y="${ay+44}" font-size="16" font-weight="700" letter-spacing="2" fill="${P.gold}">MEIOCG${pf.rank?' PLAYERS #'+pf.rank:' PROFILE'}${pf.premium?' · PREMIUM':''}</text></g>`)}
+ if(pc){const bx=W-pad-200,by=pf?168:60;o.push(`<g transform="translate(${bx},${by})"><rect width="200" height="64" rx="32" fill="${P.head}" stroke="url(#dpl)" stroke-width="3"/><text x="100" y="41" font-family="${F}" font-size="${pl.length>12?18:24}" font-weight="800" fill="url(#dpl)" text-anchor="middle" letter-spacing="2">${X(pl.split(' · ')[0].toUpperCase())}</text></g>`)}
+ // sections
+ const sec=(label,arr,x,y,w,cols)=>{const n={M:0,S:0,T:0};arr.forEach(c=>n[kind(c)]++);
+  const sub=meta.types&&arr.length&&label!=='Extra Deck'?`${n.M} Monster${n.M===1?'':'s'} · ${n.S} Spell${n.S===1?'':'s'} · ${n.T} Trap${n.T===1?'':'s'}`:'';
+  o.push(`<rect x="${x}" y="${y}" width="${w}" height="${L.secH-12}" rx="10" fill="${P.head}"/><rect x="${x}" y="${y}" width="6" height="${L.secH-12}" rx="3" fill="url(#da)"/>`,
+   `<g font-family="${F}"><text x="${x+20}" y="${y+29}" font-size="21" font-weight="800" fill="${P.ink}" letter-spacing="1">${label}  <tspan fill="${meta.design==='clean'?P.accent:P.gold}">${arr.length}</tspan></text>`+
+   (sub&&w>620?`<text x="${x+w-16}" y="${y+28}" font-family="${B}" font-size="17" fill="${P.mute}" text-anchor="end">${sub}</text>`:'')+`</g>`);
+  const y0=y+L.secH;arr.forEach((c,i)=>{const xx=x+(i%cols)*(cw+gap),yy=y0+Math.floor(i/cols)*(ch+gap),url=deckCardImageUrl(c);
+   o.push(`<rect x="${xx}" y="${yy+2}" width="${cw}" height="${ch}" rx="5" fill="#000" opacity="${meta.design==='clean'?.14:.45}"/>`);
+   if(url){let a=url;try{a=new URL(url,document.baseURI).href}catch(e){}o.push(`<g transform="translate(${xx},${yy})" clip-path="url(#dcc)"><rect width="${cw}" height="${ch}" fill="${P.slot}"/><image href="${X(a)}" xlink:href="${X(a)}" width="${cw}" height="${ch}" preserveAspectRatio="none"><title>${X(c.name||'')}</title></image></g>`)}
+   else{o.push(`<rect x="${xx}" y="${yy}" width="${cw}" height="${ch}" rx="5" fill="${P.slot}" stroke="${P.line}"/><text x="${xx+cw/2}" y="${yy+ch/2}" font-family="${B}" font-size="${Math.max(9,cw/8)}" fill="${P.sub}" text-anchor="middle">${X(String(c.name||'Card').slice(0,14))}</text>`)}});
+  return y0+Math.max(1,Math.ceil(arr.length/cols))*(ch+gap)};
+ let y=top0;const fullW=W-pad*2;
+ y=sec('Main Deck',L.main,pad,y,fullW,L.full)+18;
+ if(L.split){const hw=(fullW-36)/2;sec('Extra Deck',L.ex,pad,y,hw,L.half);sec('Side Deck',L.side,pad+hw+36,y,hw,L.half)}
+ else{if(L.ex.length)y=sec('Extra Deck',L.ex,pad,y,fullW,L.full)+14;if(L.side.length)sec('Side Deck',L.side,pad,y,fullW,L.full)}
+ o.push(`<g font-family="${F}"><text x="${pad}" y="${H-44}" font-size="18" fill="${P.mute}">Made with Duel Synapse: KodeX · a project of Meta Insider OCG</text><text x="${W-pad}" y="${H-44}" font-size="18" fill="${P.gold}" text-anchor="end" font-weight="700">kodex.meiocg.org</text></g></svg>`);
+ return o.join('')}
+/** The options: design, the preset (all editable) and a live preview. */
+function posterOptions(id){
+ const d=deckById(id);if(!d)return;const p=diPreset(d),pf=diProfile();
+ const inp=(k,l,ph,max,type)=>`<label><span>${l}</span><input data-pm="${k}" ${type?`type="${type}"`:`maxlength="${max||48}"`} placeholder="${esc(ph||'')}" value="${esc(p[k]||'')}"></label>`;
+ const m=openModal(`<div class="dk-hd"><h3>Deck image</h3><button class="ibtn" data-close aria-label="Close">${ic('x')}</button></div>
+ <div class="di-wrap"><div class="di-prev" aria-label="Preview"><div class="di-svg"></div><small>Square · ${DI_SIZE}×${DI_SIZE} · saved larger</small></div>
+ <div class="pm-f di-f"><div class="di-des" role="radiogroup" aria-label="Design">${DI_DESIGNS.map(([k,l,t])=>`<button type="button" role="radio" data-dsg="${k}" title="${esc(t)}" class="${p.design===k?'on':''}"><i class="di-sw di-${k}"></i>${l}</button>`).join('')}</div>
+ ${inp('title','Title','Deck name',40)}${inp('reg','Regulation','e.g. OCG · Forbidden & Limited',60)}
+ <div class="di-2">${inp('player','Player','Your name',32)}${inp('date','Date','','', 'date')}</div>
+ <div class="di-2">${inp('event','Event','e.g. Regional Qualifier',48)}<label><span>Placement</span><select data-pm="place">${PLACES.map(([k,l])=>`<option value="${k}"${(p.place||'')===k?' selected':''}>${l}</option>`).join('')}</select></label></div>
+ ${inp('note','Note','Optional line under the title',110)}
+ <label class="pm-c"><input type="checkbox" data-pm="profile"${p.profile?' checked':''}${pf?'':' disabled'}><span>${pf?'Show my MEIOCG profile ('+esc(pf.name)+')':'MEIOCG profile: set one up in Settings to show it here'}</span></label>
+ <label class="pm-c"><input type="checkbox" data-pm="types"${p.types?' checked':''}><span>Show card-type counts</span></label>
+ <button class="btn p" data-pmgo>${ic('image',18)}Make image</button></div></div>`,'big','pm');
+ let design=p.design;const read=()=>{const o={design};m.querySelectorAll('[data-pm]').forEach(x=>o[x.dataset.pm]=x.type==='checkbox'?x.checked&&!x.disabled:x.value.trim());if(!o.date)o.date=diToday();return o};
+ const box=m.querySelector('.di-svg');let tm=0;const draw=()=>{clearTimeout(tm);tm=setTimeout(()=>{box.innerHTML=buildSquareDeckSvg(d,read(),posterBackground)},120)};
+ m.querySelectorAll('[data-dsg]').forEach(b=>b.onclick=()=>{design=b.dataset.dsg;m.querySelectorAll('[data-dsg]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',x===b)});draw()});
+ m.querySelectorAll('[data-pm]').forEach(x=>x.addEventListener(x.tagName==='SELECT'||x.type==='checkbox'||x.type==='date'?'change':'input',draw));
+ m.querySelector('[data-pmgo]').onclick=()=>{const o=read();S.s('poster_meta',{design:o.design,reg:o.reg,player:o.player,event:o.event,place:o.place,profile:o.profile,types:o.types});closeModal();setTimeout(()=>exportDeckPoster(id,o),120)};
+ draw()}
+function exportDeckPoster(deckId,meta){
+ const d=deckById(deckId);if(!d)return;
+ if(!meta){if(topIsModal())closeModal();setTimeout(()=>posterOptions(deckId),90);return}
+ if(!meta.design)meta={...diPreset(d),...meta};
+ const name=(String(meta.title||d.name).replace(/[^\w -]/g,'').trim()||'deck')+'-'+(meta.date||diToday());let svg=buildSquareDeckSvg(d,meta,posterBackground);
+ (async()=>{const urls=[...new Set([...svg.matchAll(/<image href="(https:[^"]+)"/g)].map(m=>m[1].replace(/&amp;/g,'&')))];const got=await Promise.all(urls.map(u=>icGet(u).then(v=>[u,v],()=>[u,null])));
+  for(const [u,v] of got){const e=u.replace(/&/g,'&amp;');svg=svg.split(`href="${e}"`).join(`href="${v||artSrc(u).replace(/&/g,'&amp;')}"`)}setTimeout(()=>deckViewer(svg,name,null),60);icWarm(urls)})();
+}
+</script>
+</body>
+</html>
+
+
