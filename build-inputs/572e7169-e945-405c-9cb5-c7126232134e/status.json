@@ -1,7 +1,9 @@
 {
   "buildId": "572e7169-e945-405c-9cb5-c7126232134e",
   "status": "running",
+  "message": "Generating Android project",
+  "progress": 20,
   "runId": 43346713248,
   "runUrl": "https://github.com/castelnoleal/instApped/actions/runs/43346713248",
-  "updatedAt": "2026-11-13T01:41:35Z"
+  "updatedAt": "2026-11-13T01:41:36Z"
 }
