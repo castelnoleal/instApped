@@ -1,9 +1,17 @@
 {
   "buildId": "436b4dcc-b3bc-4548-a3d4-9bf39871fe82",
-  "status": "running",
-  "message": "Verifying generated APK and AAB",
-  "progress": 92,
+  "status": "success",
   "runId": 43875947397,
   "runUrl": "https://github.com/castelnoleal/instApped/actions/runs/43875947397",
-  "updatedAt": "2026-11-16T13:31:12Z"
+  "artifactId": 14230855658,
+  "artifactUrl": "https://github.com/castelnoleal/instApped/actions/runs/43875947397/artifacts/14230855658",
+  "buildApkUrl": "https://castel-app-factory-api.nolealtohka.workers.dev/download/436b4dcc-b3bc-4548-a3d4-9bf39871fe82/apk",
+  "buildAabUrl": "https://castel-app-factory-api.nolealtohka.workers.dev/download/436b4dcc-b3bc-4548-a3d4-9bf39871fe82/aab",
+  "testBuild": false,
+  "signing": true,
+  "testApkUrl": null,
+  "testAabUrl": null,
+  "apk": "Meiocg Kodex.apk",
+  "aab": "Meiocg Kodex.aab",
+  "updatedAt": "2026-11-16T13:31:21Z"
 }
