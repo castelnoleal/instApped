@@ -1,9 +1,9 @@
 {
   "buildId": "8c23edf4-5ff5-443e-a9a4-2d54dbe48129",
   "status": "running",
-  "message": "Compiling APK and AAB",
-  "progress": 45,
+  "message": "Starting Android emulator runtime test",
+  "progress": 78,
   "runId": 43992604671,
   "runUrl": "https://github.com/castelnoleal/instApped/actions/runs/43992604671",
-  "updatedAt": "2026-11-17T01:04:46Z"
+  "updatedAt": "2026-11-17T01:05:49Z"
 }
