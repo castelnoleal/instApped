@@ -197,7 +197,7 @@ def media_case():
         java_root = output / "app" / "src" / "main" / "java"
         main = next(java_root.rglob("MainActivity.java")).read_text(encoding="utf-8")
         assert "MEDIA_PLAYER = true;" in main
-        for name in ("MediaBridge.java", "MediaPlaybackService.java"):
+        for name in ("MediaBridge.java", "MediaPlaybackService.java", "NativeAudio.java"):
             assert "package com.castel.mediacheck;" in next(java_root.rglob(name)).read_text(encoding="utf-8")
         assert (output / "app" / "src" / "main" / "res" / "drawable" / "castel_media_note.xml").is_file()
         assert "androidx.media:media:" in (output / "app" / "build.gradle").read_text(encoding="utf-8")

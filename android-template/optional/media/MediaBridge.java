@@ -58,6 +58,18 @@ import java.util.regex.Pattern;
  * Controls pressed in the notification, on the lock screen or on a headset call
  * window.CastelMediaEvents(action, value) with action play|pause|toggle|next|prev|seek|stop.
  * While music plays, the page keeps running when the app is in the background.
+ *
+ * Native playback (recommended for device songs; steadier than playing inside the WebView):
+ *   engineAvailable()                  -> true
+ *   engineLoad(id, startMs, play, tok) -> open device song `id` (from scan); tok is echoed in events
+ *   enginePlay() / enginePause() / engineSeek(ms) / engineStop()
+ *   engineNext(id)                     -> song to play after this one, gapless (-1 = none)
+ *   engineVolume(left, right)          -> 0..1 each (volume, balance)
+ *   engineSpeed(rate)                  -> playback speed, pitch kept
+ *   engineEffects(json)                -> {eqOn, eq:[10 dB], bass:0-12, boost:100-300}; returns {eq,bass,boost} support
+ *   engineState()                      -> {token,id,playing,pos,dur,ready} (synchronous)
+ * Events: window.CastelMediaEngine(type, data) with type loaded|state|time|seeked|waiting|
+ * advanced (next song started by itself)|ended|error|interrupted; data has token, id, pos/dur in ms.
  */
 public class MediaBridge implements MainActivity.MediaHooks {
     static final String TAG = "CastelAppFactory";
@@ -68,6 +80,7 @@ public class MediaBridge implements MainActivity.MediaHooks {
     private volatile boolean playing;
     private volatile boolean sessionActive;
     private final Map<Long, String> mimeById = new HashMap<>();
+    private final NativeAudio engine;
 
     public MediaBridge(MainActivity activity) {
         this.activity = activity;
@@ -76,7 +89,54 @@ public class MediaBridge implements MainActivity.MediaHooks {
         StringBuilder sb = new StringBuilder();
         for (byte x : b) sb.append(String.format(Locale.ROOT, "%02x", x));
         token = sb.toString();
+        engine = new NativeAudio(activity, (type, data) -> {
+            String js = "window.CastelMediaEngine&&window.CastelMediaEngine(" + JSONObject.quote(type) + "," + data.toString() + ")";
+            activity.runOnUiThread(() -> activity.runMediaScript(js));
+        });
         MediaPlaybackService.bridge = this;
+    }
+
+    // ---------------------------------------------------------------- Native playback
+
+    @JavascriptInterface public boolean engineAvailable() { return true; }
+    @JavascriptInterface public void engineLoad(String id, double startMs, boolean play, int tok) {
+        long mid;
+        try { mid = Long.parseLong(id); } catch (Exception e) { return; }
+        activity.runOnUiThread(() -> { if (hasPermission()) engine.load(mid, (long) startMs, play, tok); });
+    }
+    @JavascriptInterface public void enginePlay() { activity.runOnUiThread(engine::play); }
+    @JavascriptInterface public void enginePause() { activity.runOnUiThread(engine::pause); }
+    @JavascriptInterface public void engineStop() { activity.runOnUiThread(engine::stop); }
+    @JavascriptInterface public void engineSeek(double ms) { activity.runOnUiThread(() -> engine.seek((long) ms)); }
+    @JavascriptInterface public void engineNext(String id) {
+        long mid;
+        try { mid = Long.parseLong(id); } catch (Exception e) { mid = -1; }
+        final long m = mid;
+        activity.runOnUiThread(() -> engine.setNext(m));
+    }
+    @JavascriptInterface public void engineVolume(double l, double r) { activity.runOnUiThread(() -> engine.volume((float) l, (float) r)); }
+    @JavascriptInterface public void engineSpeed(double rate) { activity.runOnUiThread(() -> engine.speed((float) rate)); }
+    @JavascriptInterface public String engineEffects(String json) {
+        final String[] out = {"{}"};
+        final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+        activity.runOnUiThread(() -> { try { out[0] = engine.effects(json); } finally { done.countDown(); } });
+        try { done.await(1500, java.util.concurrent.TimeUnit.MILLISECONDS); } catch (InterruptedException ignored) { }
+        return out[0];
+    }
+    @JavascriptInterface public String engineState() {
+        final String[] out = {"{}"};
+        final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+        activity.runOnUiThread(() -> { try { out[0] = engine.state(); } finally { done.countDown(); } });
+        try { done.await(1000, java.util.concurrent.TimeUnit.MILLISECONDS); } catch (InterruptedException ignored) { }
+        return out[0];
+    }
+
+    /** Notification/headset play-pause, handled at once even if the page is slow; the page is told too. */
+    boolean engineControl(String action) {
+        if (!engine.isActive()) return false;
+        if ("pause".equals(action)) { engine.pause(); return true; }
+        if ("play".equals(action)) { engine.play(); return true; }
+        return false;
     }
 
     // ---------------------------------------------------------------- JavaScript API
@@ -167,9 +227,10 @@ public class MediaBridge implements MainActivity.MediaHooks {
 
     // ---------------------------------------------------------------- MainActivity hooks
 
-    @Override public boolean keepRunning() { return playing || sessionActive; }
+    @Override public boolean keepRunning() { return playing || sessionActive || engine.isPlaying(); }
 
     @Override public void close() {
+        engine.release();
         MediaPlaybackService.bridge = null;
         MediaPlaybackService.shutdown(activity);
         executor.shutdownNow();

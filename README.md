@@ -42,10 +42,11 @@ The exact versions are centralized so the build template can be upgraded deliber
 Apps built from HTML/ZIP that use `window.CastelMedia` get music support automatically. For any app, including website builds, turn on **Music player** under Permissions in the factory (it sends `"mediaPlayer": true`). Other apps never get the extra permissions.
 
 - **Finds music automatically:** `CastelMedia.scan(cb)` asks for the music permission and returns the device's songs (MediaStore) with URLs the page can play, seek and run through Web Audio.
+- **Native playback (steadiest):** `CastelMedia.engineLoad/enginePlay/enginePause/engineSeek/engineNext/...` play device songs in Android's own media player instead of the WebView: no stutter when the page is busy, keeps going in the background, gapless change-over to the next song, and boost/bass/EQ through Android's audio effects. Events arrive at `window.CastelMediaEngine(type, data)`.
 - **Notification, lock screen and headset controls:** `CastelMedia.update(json)` mirrors what's playing. Controls call `window.CastelMediaEvents(action, value)` (`play`, `pause`, `next`, `prev`, `seek`).
 - **Keeps playing in the background** with a media foreground service, and pauses when headphones are unplugged. The WebView handles audio focus for the song itself (pausing for calls), so the service doesn't request it too, because two focus requests make Android pause the song.
 - Adds `READ_MEDIA_AUDIO`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` and a `mediaPlayback` service. On Google Play, declare the media-playback foreground service in the app content form.
-- Reference app and emulator test: `test-inputs/media/pulse-player.html`, `.github/workflows/media-player-test.yml`.
+- Reference app and emulator test: `test-inputs/media/musync.html`, `.github/workflows/media-player-test.yml`.
 
 The full API is documented at the top of `android-template/optional/media/MediaBridge.java`.
 

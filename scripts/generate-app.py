@@ -413,7 +413,7 @@ def generate():
         # Music support is only compiled into apps that use it.
         media_dir = optional_dir / "media"
         java_dir = next((output / "app" / "src" / "main" / "java").rglob("MainActivity.java")).parent
-        for java_name in ("MediaBridge.java", "MediaPlaybackService.java"):
+        for java_name in ("MediaBridge.java", "MediaPlaybackService.java", "NativeAudio.java"):
             if not (media_dir / java_name).is_file():
                 fail(f"{java_name} is missing from the template")
             shutil.copy2(media_dir / java_name, java_dir / java_name)
