@@ -54,9 +54,11 @@ adb shell am start -n "$PKG/.MainActivity" >/dev/null
 
 wait_log "MEDIA_TEST:SCAN_OK" 90 || fail "the app did not find the device's songs automatically"
 wait_log "MEDIA_TEST:PLAY_OK" 40 || fail "a device song did not start playing"
-wait_log "MEDIA_TEST:SEEK_OK" 20 || fail "seeking inside a device song failed (HTTP range support)"
+wait_log "MEDIA_TEST:ENGINE_OK" 20 || fail "the song is not playing in Android's own player"
+adb logcat -d | grep "MEDIA_TEST:FX" | tail -n 1 | sed 's/^.*MEDIA_TEST:/::notice title=Audio effects::/' || true
+wait_log "MEDIA_TEST:SEEK_OK" 20 || fail "seeking inside a device song failed"
 wait_log "MEDIA_TEST:NEXT_OK" 25 || fail "Next did not start the next song"
-wait_log "MEDIA_TEST:AUTONEXT_OK" 25 || fail "the player did not move on when a song ended"
+wait_log "MEDIA_TEST:AUTONEXT_OK" 25 || fail "the player did not move on (gaplessly) when a song ended"
 wait_log "MEDIA_TEST:READY_BG" 10 || fail "driver did not finish"
 adb exec-out screencap -p > "$OUT/1-app-playing.png"
 
@@ -113,4 +115,5 @@ adb shell am start -n "$PKG/.MainActivity" >/dev/null; sleep 3
 adb exec-out screencap -p > "$OUT/4-back-in-app.png"
 adb logcat -d > "$OUT/logcat.txt" || true
 grep -E "FATAL EXCEPTION" "$OUT/logcat.txt" && fail "the app crashed"
+grep -E "MEDIA_ENGINE_(ERROR|OPEN|START)" "$OUT/logcat.txt" && fail "Android's player reported an error"
 echo "Music player acceptance passed."

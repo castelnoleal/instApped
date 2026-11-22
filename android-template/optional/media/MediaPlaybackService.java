@@ -292,7 +292,9 @@ public class MediaPlaybackService extends Service {
 
     private void send(String action, long value) {
         MediaBridge b = bridge;
-        if (b != null) b.dispatch(action, value);
+        if (b == null) return;
+        b.engineControl(action);
+        b.dispatch(action, value);
     }
 
     // ---------------------------------------------------------------- Headphones

@@ -1,6 +1,6 @@
 name: Music Player Acceptance
 
-# Builds the Pulse music player (test-inputs/media) as an app and checks, on a real
+# Builds the muSync music player (test-inputs/media) as an app and checks, on a real
 # Android emulator, that it finds the device's songs, plays, seeks, skips, moves on
 # when a song ends, keeps playing in the background, and shows working media controls.
 on:
@@ -74,7 +74,7 @@ jobs:
                       v = int(9000 * math.sin(2 * math.pi * freq * n / 22050))
                       frames += struct.pack("<hh", v, v)
                   w.writeframes(bytes(frames))
-          page = Path("test-inputs/media/pulse-player.html").read_text(encoding="utf-8")
+          page = Path("test-inputs/media/musync.html").read_text(encoding="utf-8")
           driver = Path("test-inputs/media/driver.js").read_text(encoding="utf-8")
           assert "</body>" in page
           Path("media-test/index.html").write_text(page.replace("</body>", "<script>\n" + driver + "\n</script>\n</body>", 1), encoding="utf-8")
