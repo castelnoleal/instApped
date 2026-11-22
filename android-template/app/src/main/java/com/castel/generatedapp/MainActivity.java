@@ -399,7 +399,8 @@ public class MainActivity extends ComponentActivity {
                 String downloadBridgeScript = "(function(){if(window.__castelBlobDownloadsInstalled)return;window.__castelBlobDownloadsInstalled=true;document.addEventListener('click',function(ev){var a=ev.target&&ev.target.closest?ev.target.closest('a[download]'):null;if(!a)return;var href=a.href||'';if(!href.startsWith('blob:')&&!href.startsWith('data:'))return;ev.preventDefault();ev.stopImmediatePropagation();var name=a.getAttribute('download')||'download.png';var send=function(data){try{window.CastelApp.saveBase64File(data,name)}catch(e){console.error('Native save failed',e)}};if(href.startsWith('data:')){send(href);return;}fetch(href).then(function(r){return r.blob()}).then(function(blob){var reader=new FileReader();reader.onloadend=function(){send(reader.result)};reader.readAsDataURL(blob)}).catch(function(e){console.error('Blob export failed',e)});},true)})()";
                 view.evaluateJavascript(downloadBridgeScript, null);
                 // Android WebView has no navigator.share; route it to the native share sheet.
-                String shareShim = "(function(){if(navigator.share||!window.CastelApp)return;navigator.share=function(d){d=d||{};try{window.CastelApp.share(String(d.title||''),String(d.text||''),String(d.url||''));return Promise.resolve()}catch(e){return Promise.reject(e)}};navigator.canShare=function(){return true}})()";
+                // Files (pictures, videos) go through shareBase64File, so navigator.share({ files }) works as in mobile Chrome.
+                String shareShim = "(function(){if(navigator.share||!window.CastelApp)return;navigator.share=function(d){d=d||{};var f=d.files&&d.files[0];if(f&&window.CastelApp.shareBase64File){return new Promise(function(ok,no){var r=new FileReader();r.onload=function(){try{window.CastelApp.shareBase64File(String(r.result),String(f.name||'share'),[d.text,d.url].filter(Boolean).join('\\n'));ok()}catch(e){no(e)}};r.onerror=function(){no(r.error)};r.readAsDataURL(f)})}try{window.CastelApp.share(String(d.title||''),String(d.text||''),String(d.url||''));return Promise.resolve()}catch(e){return Promise.reject(e)}};navigator.canShare=function(d){return !(d&&d.files&&d.files.length)||!!window.CastelApp.shareBase64File}})()";
                 view.evaluateJavascript(shareShim, null);
                 // window.print() does nothing in WebView by default; use Android printing (also saves PDFs).
                 view.evaluateJavascript("(function(){if(!window.CastelApp||window.__castelPrint)return;window.__castelPrint=1;window.print=function(){window.CastelApp.print(document.title||'')}})()", null);
@@ -859,6 +860,45 @@ public class MainActivity extends ComponentActivity {
                     Toast.makeText(MainActivity.this, "Sharing isn't available on this device.", Toast.LENGTH_SHORT).show();
                 }
             });
+        }
+        /** Shares a picture, video or other file (a base64 data: URL) to another app through the system share sheet. */
+        @JavascriptInterface public void shareBase64File(String dataUrl, String fileName, String text) {
+            try {
+                if (dataUrl == null || !dataUrl.startsWith("data:") || !dataUrl.contains(",")) throw new IllegalArgumentException("Invalid data URL");
+                String meta = dataUrl.substring(0, dataUrl.indexOf(','));
+                if (!meta.toLowerCase(Locale.ROOT).contains(";base64")) throw new IllegalArgumentException("Expected base64 data");
+                String mime = meta.substring(5).split(";")[0];
+                if (mime.isEmpty()) mime = "application/octet-stream";
+                String payload = dataUrl.substring(dataUrl.indexOf(',') + 1);
+                if (payload.length() > 80000000) throw new IllegalArgumentException("File is too large");
+                byte[] bytes = Base64.decode(payload, Base64.DEFAULT);
+                String safeName = fileName == null ? "share" : fileName.replaceAll("[\\\\/:*?\\\"<>|]", "_");
+                if (safeName.trim().isEmpty()) safeName = "share";
+                File dir = new File(getCacheDir(), "shares");
+                if (!dir.isDirectory() && !dir.mkdirs()) throw new IllegalStateException("No room to share");
+                File[] old = dir.listFiles();
+                if (old != null) for (File f : old) if (System.currentTimeMillis() - f.lastModified() > 3600000L) f.delete();
+                File out = new File(dir, safeName);
+                try (FileOutputStream stream = new FileOutputStream(out)) { stream.write(bytes); stream.flush(); }
+                Uri uri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".instapped.files", out);
+                final String type = mime;
+                runOnUiThread(() -> {
+                    try {
+                        Intent send = new Intent(Intent.ACTION_SEND);
+                        send.setType(type);
+                        send.putExtra(Intent.EXTRA_STREAM, uri);
+                        if (text != null && !text.isEmpty()) send.putExtra(Intent.EXTRA_TEXT, text);
+                        send.setClipData(android.content.ClipData.newRawUri("", uri));
+                        send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        startActivity(Intent.createChooser(send, null));
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "Sharing isn't available on this device.", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (Exception e) {
+                Log.e("CastelAppFactory", "SHARE_FILE_FAILED", e);
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Could not share that file.", Toast.LENGTH_LONG).show());
+            }
         }
         @JavascriptInterface public void notify(String title, String body, String tag) {
             if (!PAGE_NOTIFICATIONS) return;
