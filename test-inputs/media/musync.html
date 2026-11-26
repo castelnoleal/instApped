@@ -880,7 +880,7 @@ async function getBlob(id) {
 }
 
 async function loadTrack(id, { autoplay = true, pos = 0 } = {}) {
-  const tok = ++loadTok; const t = S.tracks.get(id);
+  const tok = ++loadTok; const t = S.tracks.get(id); const pt = pauseTok;
   if (!t) return false;
   endedTok = -1; Object.assign(wd, { n: 0, t: -1, step: 0 });
   if (ENGINE && t.mid != null) {
@@ -906,7 +906,8 @@ async function loadTrack(id, { autoplay = true, pos = 0 } = {}) {
   if (old) URL.revokeObjectURL(old);
   if (pos > 0) el.addEventListener('loadedmetadata', () => { try { if (isFinite(el.duration)) el.currentTime = Math.min(pos, Math.max(0, el.duration - 1)); } catch {} }, { once: true });
   A.apply(true); updateNow(); markPlaying(); saveSession();
-  if (autoplay) await play(); else { updatePlayState(); syncNative(); }
+  // Pause pressed while this song was still loading wins over autoplay.
+  if (autoplay && pauseTok === pt) await play(); else { updatePlayState(); syncNative(); }
   return true;
 }
 
@@ -927,8 +928,10 @@ async function play() {
 }
 async function pause() {
   wantPlay = false; const tok = ++pauseTok;
+  // Tell the notification now: if the next song was still loading there is no 'pause' event.
+  updatePlayState(); syncNative();
   if (!audio.paused) { await A.fadeOut(); if (tok !== pauseTok) return; audio.pause(); A.unfade(); }
-  saveSession();
+  saveSession(); syncNative();
 }
 function toggle() { if (audio.paused || audio.ended) play(); else pause(); }
 
