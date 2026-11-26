@@ -56,6 +56,7 @@ wait_log "MEDIA_TEST:SCAN_OK" 90 || fail "the app did not find the device's song
 wait_log "MEDIA_TEST:PLAY_OK" 40 || fail "a device song did not start playing"
 wait_log "MEDIA_TEST:ENGINE_OK" 20 || fail "the song is not playing in Android's own player"
 adb logcat -d | grep "MEDIA_TEST:FX" | tail -n 1 | sed 's/^.*MEDIA_TEST:/::notice title=Audio effects::/' || true
+adb logcat -d | grep -E "MEDIA_ENGINE_DYNAMICS" && fail "volume boost fell back to LoudnessEnhancer (DynamicsProcessing failed)"
 wait_log "MEDIA_TEST:SEEK_OK" 20 || fail "seeking inside a device song failed"
 wait_log "MEDIA_TEST:NEXT_OK" 25 || fail "Next did not start the next song"
 wait_log "MEDIA_TEST:AUTONEXT_OK" 25 || fail "the player did not move on (gaplessly) when a song ended"
@@ -136,5 +137,4 @@ adb exec-out screencap -p > "$OUT/4-back-in-app.png"
 adb logcat -d > "$OUT/logcat.txt" || true
 grep -E "FATAL EXCEPTION" "$OUT/logcat.txt" && fail "the app crashed"
 grep -E "MEDIA_ENGINE_(ERROR|OPEN|START)" "$OUT/logcat.txt" && fail "Android's player reported an error"
-grep -E "MEDIA_ENGINE_DYNAMICS" "$OUT/logcat.txt" && fail "volume boost fell back to LoudnessEnhancer (DynamicsProcessing failed)"
 echo "Music player acceptance passed."
