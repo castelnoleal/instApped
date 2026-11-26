@@ -90,6 +90,7 @@ public class MediaBridge implements MainActivity.MediaHooks {
         for (byte x : b) sb.append(String.format(Locale.ROOT, "%02x", x));
         token = sb.toString();
         engine = new NativeAudio(activity, (type, data) -> {
+            if ("advanced".equals(type)) MediaPlaybackService.nativeAdvanced(activity, data.optLong("id", -1), data.optLong("dur", 0));
             String js = "window.CastelMediaEngine&&window.CastelMediaEngine(" + JSONObject.quote(type) + "," + data.toString() + ")";
             activity.runOnUiThread(() -> activity.runMediaScript(js));
         });

@@ -56,6 +56,7 @@ wait_log "MEDIA_TEST:SCAN_OK" 90 || fail "the app did not find the device's song
 wait_log "MEDIA_TEST:PLAY_OK" 40 || fail "a device song did not start playing"
 wait_log "MEDIA_TEST:ENGINE_OK" 20 || fail "the song is not playing in Android's own player"
 adb logcat -d | grep "MEDIA_TEST:FX" | tail -n 1 | sed 's/^.*MEDIA_TEST:/::notice title=Audio effects::/' || true
+adb logcat -d | grep -E "MEDIA_ENGINE_DYNAMICS" && fail "volume boost fell back to LoudnessEnhancer (DynamicsProcessing failed)"
 wait_log "MEDIA_TEST:SEEK_OK" 20 || fail "seeking inside a device song failed"
 wait_log "MEDIA_TEST:NEXT_OK" 25 || fail "Next did not start the next song"
 wait_log "MEDIA_TEST:AUTONEXT_OK" 25 || fail "the player did not move on (gaplessly) when a song ended"
@@ -108,6 +109,26 @@ sleep 3
 adb logcat -d | grep "MEDIA_TEST:POS" | tail -n 1 | grep -q ":playing:" || fail "player did not resume from the media control (app in background)"
 adb shell cmd statusbar expand-notifications; sleep 3
 adb exec-out screencap -p > "$OUT/3-notification-background.png"
+adb shell cmd statusbar collapse
+
+# The banner must follow the song. Skip several times in a row (faster than Android lets an app
+# update a notification), then check the media session and the notification both show the song
+# that is actually playing, not an earlier one.
+for i in 1 2 3; do
+  adb shell cmd media_session dispatch next >/dev/null 2>&1 || adb shell media dispatch next >/dev/null 2>&1 || true
+  sleep 0.3
+done
+sleep 5
+cur=$(adb logcat -d | grep "MEDIA_TEST:POS" | tail -n 1 | sed -E 's/^.*MEDIA_TEST:POS:(.*):[0-9.]+:(playing|paused):.*$/\1/')
+[ -n "$cur" ] || fail "could not read the playing song"
+echo "Playing after rapid skips: $cur"
+adb shell dumpsys media_session > "$OUT/media_session_after_skips.txt"
+adb shell dumpsys notification --noredact > "$OUT/notifications_after_skips.txt"
+grep -F "description=$cur" "$OUT/media_session_after_skips.txt" >/dev/null || { grep -E "description=" "$OUT/media_session_after_skips.txt" | head -n 3; fail "the lock screen / media session shows a different song than '$cur'"; }
+grep -F "android.title=String ($cur)" "$OUT/notifications_after_skips.txt" >/dev/null || { grep -E "android.title=" "$OUT/notifications_after_skips.txt" | head -n 3; fail "the notification banner shows a different song than '$cur'"; }
+echo "Notification follows the song: $cur"
+adb shell cmd statusbar expand-notifications; sleep 3
+adb exec-out screencap -p > "$OUT/3b-notification-after-skips.png"
 adb shell cmd statusbar collapse
 
 # Back to the app; still alive and playing.
