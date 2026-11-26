@@ -31,7 +31,7 @@
       if (!P().ENGINE || !P().audio.native) throw new Error('device song is not playing in Android\'s player');
       var es = function () { return JSON.parse(window.CastelMedia.engineState()); };
       var p0 = es().pos; await new Promise(function (r) { setTimeout(r, 2000); });
-      if (!(es().playing && es().pos > p0 + 1200)) throw new Error('Android player not advancing ' + JSON.stringify(es()));
+      var e1 = es(); if (!(e1.playing && e1.pos > p0 + 1200)) throw new Error('Android player not advancing from ' + p0 + ' ' + JSON.stringify(e1));
       log('ENGINE_OK:' + p0 + '->' + es().pos);
       step = 'EFFECTS'; P().S.set.boost = 200; P().S.set.eqOn = true; P().S.set.eq = [6,5,3,1,0,0,0,1,2,3]; P().A.apply();
       log('FX:' + JSON.stringify(P().A.caps));

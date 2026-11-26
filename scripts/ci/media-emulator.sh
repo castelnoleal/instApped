@@ -136,4 +136,5 @@ adb exec-out screencap -p > "$OUT/4-back-in-app.png"
 adb logcat -d > "$OUT/logcat.txt" || true
 grep -E "FATAL EXCEPTION" "$OUT/logcat.txt" && fail "the app crashed"
 grep -E "MEDIA_ENGINE_(ERROR|OPEN|START)" "$OUT/logcat.txt" && fail "Android's player reported an error"
+grep -E "MEDIA_ENGINE_DYNAMICS" "$OUT/logcat.txt" && fail "volume boost fell back to LoudnessEnhancer (DynamicsProcessing failed)"
 echo "Music player acceptance passed."

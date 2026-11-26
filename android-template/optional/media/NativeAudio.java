@@ -342,9 +342,10 @@ final class NativeAudio {
         if (Build.VERSION.SDK_INT < 28 || session <= 0 || dynFailed) return false;
         try {
             if (dyn == null) {
+                // Every stage needs at least one band, even switched off: Android rejects 0.
                 DynamicsProcessing.Config cfg = new DynamicsProcessing.Config.Builder(
-                        DynamicsProcessing.VARIANT_FAVOR_TIME_RESOLUTION, 2,
-                        false, 0, false, 0, false, 0, true).build();
+                        DynamicsProcessing.VARIANT_FAVOR_FREQUENCY_RESOLUTION, 2,
+                        false, 1, false, 1, false, 1, true).build();
                 dyn = new DynamicsProcessing(0, session, cfg);
             }
             float gainDb = boost > 100 ? (float) (20 * Math.log10(boost / 100.0)) : 0f;
