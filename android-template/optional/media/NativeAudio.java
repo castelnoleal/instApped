@@ -8,6 +8,7 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
 import android.media.audiofx.BassBoost;
+import android.media.audiofx.DynamicsProcessing;
 import android.media.audiofx.Equalizer;
 import android.media.audiofx.LoudnessEnhancer;
 import android.net.Uri;
@@ -55,6 +56,8 @@ final class NativeAudio {
     private Equalizer eq;
     private BassBoost bass;
     private LoudnessEnhancer loud;
+    private DynamicsProcessing dyn;   // Android 9+: boost with a fast peak limiter (no slow pumping)
+    private boolean dynFailed;
     private JSONObject lastFx;
 
     private AudioFocusRequest focusReq;
@@ -164,7 +167,14 @@ final class NativeAudio {
                 } catch (Exception e) { caps.put("bass", false); }
             } else caps.put("bass", false);
             int boost = fx.optInt("boost", 100);
-            if (loud != null) {
+            boolean guard = boost > 100 || bassDb > 0 || (eqOn && maxGain(g) > 0);
+            if (applyDynamics(boost, guard)) {
+                // Boost and clipping protection are handled by DynamicsProcessing; the older
+                // LoudnessEnhancer would squeeze loud parts and let them recover slowly
+                // (heard as the music going weak for a few seconds), so keep it off.
+                if (loud != null) { try { loud.setEnabled(false); } catch (Exception ignored) { } }
+                caps.put("boost", true);
+            } else if (loud != null) {
                 try {
                     int mb = boost > 100 ? (int) Math.round(2000 * Math.log10(boost / 100.0)) : 0;
                     loud.setTargetGain(mb);
@@ -321,11 +331,44 @@ final class NativeAudio {
         if (loud == null && Build.VERSION.SDK_INT >= 19) { try { loud = new LoudnessEnhancer(session); } catch (Throwable t) { loud = null; } }
     }
 
+    private static double maxGain(JSONArray g) {
+        double m = 0;
+        if (g != null) for (int i = 0; i < g.length(); i++) m = Math.max(m, g.optDouble(i, 0));
+        return m;
+    }
+
+    /** Volume boost as plain gain followed by a fast limiter. Returns false where unavailable. */
+    private boolean applyDynamics(int boost, boolean on) {
+        if (Build.VERSION.SDK_INT < 28 || session <= 0 || dynFailed) return false;
+        try {
+            if (dyn == null) {
+                DynamicsProcessing.Config cfg = new DynamicsProcessing.Config.Builder(
+                        DynamicsProcessing.VARIANT_FAVOR_TIME_RESOLUTION, 2,
+                        false, 0, false, 0, false, 0, true).build();
+                dyn = new DynamicsProcessing(0, session, cfg);
+            }
+            float gainDb = boost > 100 ? (float) (20 * Math.log10(boost / 100.0)) : 0f;
+            dyn.setInputGainAllChannelsTo(gainDb);
+            // Attack 1 ms, release 80 ms, ratio 10:1 just under full scale: peaks are caught
+            // at once and the level comes straight back, so there is no audible dip.
+            dyn.setLimiterAllChannelsTo(new DynamicsProcessing.Limiter(true, true, 0, 1f, 80f, 10f, -1f, 0f));
+            dyn.setEnabled(on);
+            return true;
+        } catch (Throwable t) {
+            Log.w(TAG, "MEDIA_ENGINE_DYNAMICS", t);
+            try { if (dyn != null) dyn.release(); } catch (Throwable ignored) { }
+            dyn = null;
+            dynFailed = true;
+            return false;
+        }
+    }
+
     private void releaseEffects() {
         try { if (eq != null) eq.release(); } catch (Exception ignored) { }
         try { if (bass != null) bass.release(); } catch (Exception ignored) { }
         try { if (loud != null) loud.release(); } catch (Exception ignored) { }
-        eq = null; bass = null; loud = null;
+        try { if (dyn != null) dyn.release(); } catch (Throwable ignored) { }
+        eq = null; bass = null; loud = null; dyn = null;
     }
 
     private static final double[] BANDS = {32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000};
@@ -354,7 +397,11 @@ final class NativeAudio {
                 if (playing) { resumeOnGain = true; pauseInternal(); emit("interrupted", obj("resume", true)); }
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
-                duck = 0.25f; applyVolume(); break;
+                // Android 8+ already lowers the music by itself for a notification sound
+                // (setWillPauseWhenDucked(false)). Lowering it here as well made the music
+                // drop far below the volume the user chose, so only older Android ducks here.
+                if (Build.VERSION.SDK_INT < 26) { duck = 0.5f; applyVolume(); }
+                break;
             case AudioManager.AUDIOFOCUS_GAIN:
                 hasFocus = true;
                 if (duck != 1f) { duck = 1f; applyVolume(); }

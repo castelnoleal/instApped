@@ -54,6 +54,16 @@ public class MediaPlaybackService extends Service {
         float rate = 1f;
         boolean hasPrev = true, hasNext = true;
         boolean playing() { return "playing".equals(state); }
+        State copy() {
+            State c = new State();
+            c.state = state; c.title = title; c.artist = artist; c.album = album; c.art = art;
+            c.duration = duration; c.position = position; c.mediaId = mediaId; c.rate = rate;
+            c.hasPrev = hasPrev; c.hasNext = hasNext;
+            return c;
+        }
+        /** What the notification shows. Position changes don't need a new notification. */
+        String visualKey() { return itemKey() + '\u0001' + state + '\u0001' + title + '\u0001' + artist + '\u0001' + album + '\u0001' + hasPrev + hasNext; }
+        String itemKey() { return mediaId >= 0 ? "id:" + mediaId : "t:" + title + '\u0001' + artist + '\u0001' + album; }
     }
 
     static volatile MediaBridge bridge;
@@ -67,6 +77,14 @@ public class MediaPlaybackService extends Service {
     private boolean noisyRegistered, foreground;
     private Bitmap artBitmap;
     private String artKey = "";
+    // Android drops notification updates that arrive too fast (about 5 a second per app) and
+    // the newest one can be the one lost, leaving the banner on the previous song. Posts are
+    // made only when what the banner shows changes, and spaced out with the newest always sent last.
+    private static final long MIN_POST_GAP_MS = 350;
+    private String postedKey = "";
+    private long lastPostAt;
+    private boolean postPending;
+    private final Runnable postLatest = () -> { postPending = false; State cur = latest; if (cur != null && session != null && !"none".equals(cur.state)) postNotification(cur, true); };
 
     // ---------------------------------------------------------------- Called from MediaBridge (main thread)
 
@@ -80,6 +98,38 @@ public class MediaPlaybackService extends Service {
         } catch (Exception e) {
             Log.w(TAG, "MEDIA_SERVICE_START_FAILED", e);
         }
+    }
+
+    /**
+     * The native player moved to the next song by itself (gapless). Show the new song at once from
+     * MediaStore, even if the page is busy or throttled in the background; the page confirms it later.
+     */
+    static void nativeAdvanced(Context ctx, long mediaId, long durationMs) {
+        State base = latest;
+        if (base == null || mediaId < 0) return;
+        final Context app = ctx.getApplicationContext();
+        new Thread(() -> {
+            State s = base.copy();
+            s.mediaId = mediaId; s.position = 0; s.state = "playing"; s.art = "";
+            s.duration = durationMs > 0 ? durationMs : 0;
+            try (android.database.Cursor c = app.getContentResolver().query(
+                    ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, mediaId),
+                    new String[]{MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.ALBUM, MediaStore.Audio.Media.DURATION},
+                    null, null, null)) {
+                if (c == null || !c.moveToFirst()) return;
+                s.title = c.getString(0) == null ? "" : c.getString(0);
+                String ar = c.getString(1);
+                s.artist = ar == null || "<unknown>".equals(ar) ? "" : ar;
+                s.album = c.getString(2) == null ? "" : c.getString(2);
+                if (s.duration <= 0) s.duration = Math.max(0, c.getLong(3));
+            } catch (Exception e) { Log.w(TAG, "MEDIA_ADVANCE_LOOKUP", e); return; }
+            new Handler(Looper.getMainLooper()).post(() -> {
+                State now = latest;
+                // The page already reported this song (or something newer): keep its version.
+                if (now != base) return;
+                push(app, s);
+            });
+        }).start();
     }
 
     static void shutdown(Context ctx) {
@@ -174,8 +224,9 @@ public class MediaPlaybackService extends Service {
                 .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, s.title)
                 .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, s.artist)
                 .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, s.duration > 0 ? s.duration : -1);
+        md.putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, s.itemKey());
         if (artBitmap != null) md.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap);
-        session.setMetadata(md.build());
+        try { session.setMetadata(md.build()); } catch (Exception e) { Log.w(TAG, "MEDIA_METADATA", e); }
         long actions = PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_PLAY_PAUSE
                 | PlaybackStateCompat.ACTION_STOP | PlaybackStateCompat.ACTION_SEEK_TO
                 | PlaybackStateCompat.ACTION_FAST_FORWARD | PlaybackStateCompat.ACTION_REWIND;
@@ -187,11 +238,30 @@ public class MediaPlaybackService extends Service {
                         s.position, s.playing() ? s.rate : 0f, SystemClock.elapsedRealtime())
                 .build());
         session.setActive(true);
+        postNotification(s, false);
+    }
+
+    /** Posts the banner when what it shows changed, spaced out so Android never drops the newest one. */
+    private void postNotification(State s, boolean force) {
+        String key = s.visualKey() + '\u0001' + artKey + '\u0001' + (artBitmap != null);
+        boolean needForeground = s.playing() && !foreground;
+        boolean leaveForeground = !s.playing() && foreground;
+        if (!force && !needForeground && !leaveForeground && key.equals(postedKey)) return;
+        long now = SystemClock.elapsedRealtime();
+        long wait = MIN_POST_GAP_MS - (now - lastPostAt);
+        if (wait > 0 && !needForeground) {
+            // Too soon after the last post: send the newest state a moment later instead.
+            if (!postPending) { postPending = true; main.postDelayed(postLatest, wait); }
+            return;
+        }
+        main.removeCallbacks(postLatest);
+        postPending = false;
+        lastPostAt = now;
+        postedKey = key;
         Notification n = build(s);
         if (s.playing()) {
-            // Audio focus is left to the WebView: it already requests it for the playing
-            // song and pauses for calls. Requesting it here too makes the two fight and
-            // Android pauses the song.
+            // Audio focus is left to the player: requesting it here too makes the two fight
+            // and Android pauses the song.
             registerNoisy();
             enterForeground(n);
         } else {
@@ -205,6 +275,7 @@ public class MediaPlaybackService extends Service {
     }
 
     private void enterForeground(Notification n) {
+        lastPostAt = SystemClock.elapsedRealtime();
         try {
             if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
             else startForeground(NOTIFICATION_ID, n);
@@ -267,17 +338,26 @@ public class MediaPlaybackService extends Service {
                     bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
                 }
             } catch (Exception ignored) { }
+            if (bmp != null && Math.max(bmp.getWidth(), bmp.getHeight()) > 320) {
+                // Keep the art small: a 512px picture is about 1 MB, near Android's limit for
+                // passing it to the system UI, and the banner shows it at under 300px anyway.
+                float k = 320f / Math.max(bmp.getWidth(), bmp.getHeight());
+                try { bmp = Bitmap.createScaledBitmap(bmp, Math.max(1, Math.round(bmp.getWidth() * k)), Math.max(1, Math.round(bmp.getHeight() * k)), true); } catch (Exception ignored) { }
+            }
             Bitmap result = bmp;
             main.post(() -> {
                 if (!key.equals(artKey)) return;
                 artBitmap = result;
                 State cur = latest;
-                if (cur != null && result != null) apply(cur);
+                if (cur != null && result != null && !"none".equals(cur.state)) apply(cur);
             });
         });
     }
 
     private void stopEverything() {
+        main.removeCallbacks(postLatest);
+        postPending = false;
+        postedKey = "";
         unregisterNoisy();
         if (session != null) session.setActive(false);
         if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE); else stopForeground(true);
