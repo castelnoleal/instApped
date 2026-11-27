@@ -93,7 +93,7 @@ public class MediaBridge implements MainActivity.MediaHooks {
         for (byte x : b) sb.append(String.format(Locale.ROOT, "%02x", x));
         token = sb.toString();
         engine = new NativeAudio(activity, (type, data) -> {
-            try { lastEngineState = this.engine.state(); } catch (Exception ignored) { }
+            rememberEngineState();
             if ("advanced".equals(type)) MediaPlaybackService.nativeAdvanced(activity, data.optLong("id", -1), data.optLong("dur", 0));
             String js = "window.CastelMediaEngine&&window.CastelMediaEngine(" + JSONObject.quote(type) + "," + data.toString() + ")";
             activity.runOnUiThread(() -> activity.runMediaScript(js));
@@ -128,6 +128,11 @@ public class MediaBridge implements MainActivity.MediaHooks {
         try { done.await(1500, java.util.concurrent.TimeUnit.MILLISECONDS); } catch (InterruptedException ignored) { }
         return out[0];
     }
+    private void rememberEngineState() {
+        NativeAudio e = engine;
+        if (e != null) { try { lastEngineState = e.state(); } catch (Exception ignored) { } }
+    }
+
     @JavascriptInterface public String engineState() {
         final String[] out = {"{}"};
         final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
