@@ -81,6 +81,7 @@ public class MediaBridge implements MainActivity.MediaHooks {
     private final String token;
     private volatile boolean playing;
     private volatile boolean sessionActive;
+    private volatile String lastEngineState = "{}"; // refreshed on every engine event (main thread)
     private final Map<Long, String> mimeById = new HashMap<>();
     private final NativeAudio engine;
 
@@ -92,6 +93,7 @@ public class MediaBridge implements MainActivity.MediaHooks {
         for (byte x : b) sb.append(String.format(Locale.ROOT, "%02x", x));
         token = sb.toString();
         engine = new NativeAudio(activity, (type, data) -> {
+            try { lastEngineState = engine.state(); } catch (Exception ignored) { }
             if ("advanced".equals(type)) MediaPlaybackService.nativeAdvanced(activity, data.optLong("id", -1), data.optLong("dur", 0));
             String js = "window.CastelMediaEngine&&window.CastelMediaEngine(" + JSONObject.quote(type) + "," + data.toString() + ")";
             activity.runOnUiThread(() -> activity.runMediaScript(js));
@@ -130,8 +132,10 @@ public class MediaBridge implements MainActivity.MediaHooks {
         final String[] out = {"{}"};
         final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
         activity.runOnUiThread(() -> { try { out[0] = engine.state(); } finally { done.countDown(); } });
-        try { done.await(1000, java.util.concurrent.TimeUnit.MILLISECONDS); } catch (InterruptedException ignored) { }
-        return out[0];
+        boolean fresh = false;
+        try { fresh = done.await(1000, java.util.concurrent.TimeUnit.MILLISECONDS); } catch (InterruptedException ignored) { }
+        // Main thread busy for a moment: answer with the state from the last engine event.
+        return fresh ? out[0] : lastEngineState;
     }
 
     /** Notification/headset play-pause, handled at once even if the page is slow; the page is told too. */
