@@ -1,9 +1,17 @@
 {
   "buildId": "c55baf04-8b6c-4db4-9a93-a05dd6f0e81d",
-  "status": "running",
-  "message": "Verifying generated APK and AAB",
-  "progress": 92,
+  "status": "success",
   "runId": 45957342312,
   "runUrl": "https://github.com/castelnoleal/instApped/actions/runs/45957342312",
-  "updatedAt": "2026-11-27T07:20:30Z"
+  "artifactId": 15179298152,
+  "artifactUrl": "https://github.com/castelnoleal/instApped/actions/runs/45957342312/artifacts/15179298152",
+  "buildApkUrl": "https://castel-app-factory-api.nolealtohka.workers.dev/download/c55baf04-8b6c-4db4-9a93-a05dd6f0e81d/apk",
+  "buildAabUrl": "https://castel-app-factory-api.nolealtohka.workers.dev/download/c55baf04-8b6c-4db4-9a93-a05dd6f0e81d/aab",
+  "testBuild": false,
+  "signing": true,
+  "testApkUrl": null,
+  "testAabUrl": null,
+  "apk": "MuSync.apk",
+  "aab": "MuSync.aab",
+  "updatedAt": "2026-11-27T07:20:37Z"
 }
