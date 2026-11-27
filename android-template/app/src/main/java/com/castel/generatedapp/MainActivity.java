@@ -1300,13 +1300,13 @@ public class MainActivity extends ComponentActivity {
             + "N.requestPermission=function(cb){return new Promise(function(res){window.__castelNotifyResolve=function(p){if(cb)cb(p);res(p)};window.CastelApp.requestNotificationPermission()})};"
             + "window.Notification=N})()";
 
-    private boolean notificationsAllowed() {
+    boolean notificationsAllowed() {
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) return false;
         android.app.NotificationManager nm = (android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         return nm == null || nm.areNotificationsEnabled();
     }
 
-    private void requestNotificationPermissionThen(Consumer<Boolean> done) {
+    void requestNotificationPermissionThen(Consumer<Boolean> done) {
         if (Build.VERSION.SDK_INT < 33) { done.accept(notificationsAllowed()); return; }
         requestAndroidPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},
                 granted -> done.accept(granted.contains("android.permission.POST_NOTIFICATIONS")));

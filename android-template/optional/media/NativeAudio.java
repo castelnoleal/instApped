@@ -89,8 +89,9 @@ final class NativeAudio {
 
     void play() {
         wantPlay = true;
-        if (cur == null || !prepared) return;
-        if (!requestFocus()) { emitState(); return; }
+        if (cur == null || !prepared) { Log.i(TAG, "MEDIA_ENGINE_PLAY_WAIT:" + (cur != null)); return; }
+        if (!requestFocus()) { Log.w(TAG, "MEDIA_ENGINE_PLAY_NO_FOCUS"); emitState(); return; }
+        Log.i(TAG, "MEDIA_ENGINE_PLAY");
         try {
             cur.start();
             applySpeed(cur);
@@ -101,6 +102,7 @@ final class NativeAudio {
     }
 
     void pause() {
+        Log.i(TAG, "MEDIA_ENGINE_PAUSE");
         wantPlay = false;
         resumeOnGain = false;
         if (cur != null && prepared) { try { if (cur.isPlaying()) cur.pause(); } catch (Exception ignored) { } }
@@ -340,6 +342,9 @@ final class NativeAudio {
     /** Volume boost as plain gain followed by a fast limiter. Returns false where unavailable. */
     private boolean applyDynamics(int boost, boolean on) {
         if (Build.VERSION.SDK_INT < 28 || session <= 0 || dynFailed) return false;
+        // Not needed (no boost, no bass, no raised EQ band): don't build it. Setting it up talks
+        // to Android's audio server and can hold up the app for a moment.
+        if (!on && dyn == null) return true;
         try {
             if (dyn == null) {
                 // Every stage needs at least one band, even switched off: Android rejects 0.

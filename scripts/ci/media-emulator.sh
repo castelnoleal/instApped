@@ -56,6 +56,7 @@ wait_log "MEDIA_TEST:SCAN_OK" 90 || fail "the app did not find the device's song
 wait_log "MEDIA_TEST:PLAY_OK" 40 || fail "a device song did not start playing"
 wait_log "MEDIA_TEST:ENGINE_OK" 20 || fail "the song is not playing in Android's own player"
 adb logcat -d | grep "MEDIA_TEST:FX" | tail -n 1 | sed 's/^.*MEDIA_TEST:/::notice title=Audio effects::/' || true
+adb logcat -d | grep -E "MEDIA_SLOW" || true
 adb logcat -d | grep -E "MEDIA_ENGINE_DYNAMICS" && fail "volume boost fell back to LoudnessEnhancer (DynamicsProcessing failed)"
 wait_log "MEDIA_TEST:SEEK_OK" 20 || fail "seeking inside a device song failed"
 wait_log "MEDIA_TEST:NEXT_OK" 25 || fail "Next did not start the next song"
@@ -102,11 +103,35 @@ wait_log "MEDIA_TEST:EVENT:pause" 10 || fail "the Pause control did not reach th
 sleep 3
 adb logcat -d | grep "MEDIA_TEST:POS" | tail -n 1 | grep -q ":paused:" || fail "player did not pause from the media control"
 adb shell dumpsys media_session | grep -E "state=PlaybackState \{state=(2|PAUSED)" >/dev/null || fail "media session did not show paused"
+# Paused from the notification with the app in the background: the controls must stay, so the
+# user can press Play again, even after a while.
+has_banner() { adb shell dumpsys notification --noredact | grep -E "NotificationRecord.*pkg=$PKG" >/dev/null; }
+has_banner || { adb shell dumpsys notification --noredact > "$OUT/notifications_after_pause.txt"; fail "the notification disappeared when paused"; }
+adb exec-out screencap -p > "$OUT/2b-after-pause.png"
+sleep 45
+adb shell pidof "$PKG" >/dev/null || fail "Android closed the app 45 s after pausing"
+has_banner || { adb shell dumpsys notification --noredact > "$OUT/notifications_after_pause.txt"; adb logcat -d > "$OUT/logcat_pause.txt"; fail "the notification disappeared 45 s after pausing"; }
+adb shell dumpsys media_session | grep -E "state=PlaybackState \{state=(2|PAUSED)" >/dev/null || fail "media session lost while paused"
+echo "Notification stays while paused"
 adb logcat -c
 adb shell cmd media_session dispatch play >/dev/null 2>&1 || adb shell media dispatch play >/dev/null 2>&1 || true
 wait_log "MEDIA_TEST:EVENT:play" 10 || fail "the Play control did not reach the player"
 sleep 3
-adb logcat -d | grep "MEDIA_TEST:POS" | tail -n 1 | grep -q ":playing:" || fail "player did not resume from the media control (app in background)"
+# Ask Android itself: the page's own timers are slowed down this long in the background.
+for _ in $(seq 1 10); do adb shell dumpsys media_session | grep -E "state=PlaybackState \{state=(3|PLAYING)" >/dev/null && break; sleep 1; done
+adb shell dumpsys media_session | grep -E "state=PlaybackState \{state=(3|PLAYING)" >/dev/null || fail "media session did not show playing after Play (app in background)"
+uid=$(adb shell dumpsys package "$PKG" | grep -m1 -oE "userId=[0-9]+" | cut -d= -f2)
+adb shell dumpsys audio > "$OUT/audio_after_play.txt"
+pid=$(adb shell pidof "$PKG" | tr -d '\r')
+echo "uid=$uid pid=$pid"
+grep -E "AudioPlaybackConfiguration" "$OUT/audio_after_play.txt" | grep -E "u/pid:[0-9]+/${pid} " | cut -c1-160 | head -n 4 || true
+if ! grep -E "AudioPlaybackConfiguration" "$OUT/audio_after_play.txt" | grep -E "u/pid:[0-9]+/${pid} " | grep -q "state:started"; then
+  echo "--- playback configurations"; grep -E "AudioPlaybackConfiguration" "$OUT/audio_after_play.txt" | head -n 12
+  echo "--- app log"; adb logcat -d --pid="$pid" 2>/dev/null | grep -vE "MEDIA_TEST:POS|chromium" | tail -n 40
+  fail "Android's player did not resume after Play (app in background)"
+fi
+echo "Play resumed in the background after 45 s paused"
+has_banner || fail "the notification did not come back after Play"
 adb shell cmd statusbar expand-notifications; sleep 3
 adb exec-out screencap -p > "$OUT/3-notification-background.png"
 adb shell cmd statusbar collapse

@@ -84,6 +84,12 @@ public class MediaPlaybackService extends Service {
     private String postedKey = "";
     private long lastPostAt;
     private boolean postPending;
+    // When paused, stay in the foreground for a while. Paused media controls that are not part
+    // of a foreground service are an ordinary notification: Android hides them if the app may not
+    // post notifications, and may freeze or close the app, so Play would do nothing.
+    private static final long PAUSED_FOREGROUND_MS = 15 * 60 * 1000L;
+    private final Runnable leaveForegroundLater = () -> { State cur = latest; if (cur != null && !cur.playing() && session != null) { postedKey = ""; postNotification(cur, true); } };
+    private long pausedSince;
     private final Runnable postLatest = () -> { postPending = false; State cur = latest; if (cur != null && session != null && !"none".equals(cur.state)) postNotification(cur, true); };
 
     // ---------------------------------------------------------------- Called from MediaBridge (main thread)
@@ -214,6 +220,11 @@ public class MediaPlaybackService extends Service {
     // ---------------------------------------------------------------- State → session + notification
 
     private void apply(State s) {
+        long t0 = SystemClock.elapsedRealtime();
+        try { applyNow(s); } finally { long ms = SystemClock.elapsedRealtime() - t0; if (ms > 150) Log.w(TAG, "MEDIA_SLOW:notification:" + ms + "ms"); }
+    }
+
+    private void applyNow(State s) {
         if (session == null) return;
         if ("none".equals(s.state)) { stopEverything(); return; }
         loadArtAsync(s);
@@ -244,8 +255,12 @@ public class MediaPlaybackService extends Service {
     /** Posts the banner when what it shows changed, spaced out so Android never drops the newest one. */
     private void postNotification(State s, boolean force) {
         String key = s.visualKey() + '\u0001' + artKey + '\u0001' + (artBitmap != null);
+        long nowT = SystemClock.elapsedRealtime();
+        if (s.playing()) { pausedSince = 0; main.removeCallbacks(leaveForegroundLater); }
+        else if (pausedSince == 0) { pausedSince = nowT; main.removeCallbacks(leaveForegroundLater); main.postDelayed(leaveForegroundLater, PAUSED_FOREGROUND_MS + 500); }
+        boolean keepFg = s.playing() || nowT - pausedSince < PAUSED_FOREGROUND_MS;
         boolean needForeground = s.playing() && !foreground;
-        boolean leaveForeground = !s.playing() && foreground;
+        boolean leaveForeground = !keepFg && foreground;
         if (!force && !needForeground && !leaveForeground && key.equals(postedKey)) return;
         long now = SystemClock.elapsedRealtime();
         long wait = MIN_POST_GAP_MS - (now - lastPostAt);
@@ -264,6 +279,10 @@ public class MediaPlaybackService extends Service {
             // and Android pauses the song.
             registerNoisy();
             enterForeground(n);
+        } else if (keepFg && foreground) {
+            // Paused a moment ago: same foreground notification, now with a Play button.
+            unregisterNoisy();
+            if (nm != null) nm.notify(NOTIFICATION_ID, n);
         } else {
             unregisterNoisy();
             if (foreground) {
@@ -300,7 +319,7 @@ public class MediaPlaybackService extends Service {
                 .setOnlyAlertOnce(true)
                 .setSilent(true)
                 .setShowWhen(false)
-                .setOngoing(s.playing())
+                .setOngoing(s.playing() || foreground)
                 .setDeleteIntent(service(ACTION_DISMISS, 5));
         if (session != null) b.setContentIntent(session.getController().getSessionActivity());
         b.addAction(R.drawable.castel_media_prev, "Previous", service(ACTION_PREV, 2));
@@ -356,6 +375,8 @@ public class MediaPlaybackService extends Service {
 
     private void stopEverything() {
         main.removeCallbacks(postLatest);
+        main.removeCallbacks(leaveForegroundLater);
+        pausedSince = 0;
         postPending = false;
         postedKey = "";
         unregisterNoisy();

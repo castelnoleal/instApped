@@ -1022,7 +1022,7 @@ function addQueue(ids) { ids = [].concat(ids).filter(id => S.tracks.has(id)); if
 
 /* player events */
 audio.addEventListener('play', () => { wantPlay = true; H.tick(); updatePlayState(); syncNative(); });
-audio.addEventListener('playing', () => { S.errRun = 0; S.intr = false; wd.step = 0; updatePlayState(); syncNative(); const t = curTrack(); if (t && t.bad) { t.bad = false; markPlaying(); } vizLoop(); });
+audio.addEventListener('playing', () => { if (NATIVE && !S.nfAsk) { S.nfAsk = true; setTimeout(() => askNotifications(false), 1200); } S.errRun = 0; S.intr = false; wd.step = 0; updatePlayState(); syncNative(); const t = curTrack(); if (t && t.bad) { t.bad = false; markPlaying(); } vizLoop(); });
 audio.addEventListener('pause', () => { H.tick();
   // A pause we didn't ask for (another app took the audio, a call…): follow it instead of fighting it.
   if (wantPlay && !audio.ended && !audio.native && nowMs() - audio.loadedAt > 400) wantPlay = false;
@@ -1233,6 +1233,31 @@ async function scanDevice({ silent = false } = {}) {
   if (!silent) toast(added === total && added ? `Found ${added} song${added > 1 ? 's' : ''} on this device` : added ? `Found ${added} new song${added > 1 ? 's' : ''} · ${total} on this device` : total ? `Up to date · ${total} song${total > 1 ? 's' : ''} on this device` : 'No music found on this device', 3000);
   else if (added) toast(`Added ${added} new song${added > 1 ? 's' : ''} from this device`, 2500);
   else if (gone.length) toast(`${gone.length} song${gone.length > 1 ? 's were' : ' was'} removed from this device`, 2500);
+}
+// Android 13+: the notification-panel controls need notification permission. Without it the
+// controls vanish as soon as music is paused, so Play can't be pressed there again.
+const notifAllowed = () => { if (!NATIVE || typeof window.CastelMedia.notificationsAllowed !== 'function') return true; try { return !!window.CastelMedia.notificationsAllowed(); } catch { return true; } };
+function requestNotif() {
+  return new Promise(res => {
+    const cb = '__musyncNotif' + Date.now();
+    const to = setTimeout(() => { delete window[cb]; res({}); }, 60000);
+    window[cb] = j => { clearTimeout(to); delete window[cb]; try { res(JSON.parse(j)); } catch { res({}); } };
+    try { window.CastelMedia.requestNotifications(cb); } catch { clearTimeout(to); delete window[cb]; res({}); }
+  });
+}
+function askNotifications(force) {
+  if (notifAllowed() || (!force && lsGet('pp.askedNotif', false)) || layers.some(l => l.name === 'sheet')) return;
+  lsSet('pp.askedNotif', true);
+  $('#sheet').dataset.kind = 'perm';
+  openSheet('Music controls', `<p class="msg">Allow notifications so muSync can keep play, pause and skip controls in your notification panel and on the lock screen — also while the music is paused.</p><div class="mact"><button class="btn" id="nfC">Not now</button><button class="btn pri" id="nfO">Allow</button></div>`, b => {
+    b.querySelector('#nfC').onclick = () => closeTop();
+    b.querySelector('#nfO').onclick = async () => {
+      await closeTop(); const r = await requestNotif();
+      if (r.granted || notifAllowed()) { toast('Music controls are on', 1600); syncNative(); }
+      else if (r.permanent) { toast('Turn on Notifications for muSync, then come back', 3500); try { window.CastelMedia.openSettings(); } catch {} }
+      else toast('Without notifications the controls only show while music plays', 3500);
+    };
+  });
 }
 function permissionHelp(permanent) {
   $('#toast').classList.remove('show');
@@ -1959,6 +1984,7 @@ async function openSettings() {
   ${NATIVE ? `<div class="srow"><div><b>Device music</b><br><small>${[...S.tracks.values()].filter(t => t.mid != null).length} songs found${S.hidden.size ? ` · ${S.hidden.size} hidden` : ''}</small></div><div style="display:flex;gap:6px">${S.hidden.size ? '<button class="btn" data-set="unhide">Show hidden</button>' : ''}<button class="btn" data-set="scan">Scan now</button></div></div>` : ''}
   ${CAN_WATCH_FOLDER ? `<div class="srow"><div><b>Music folder</b><br><small id="fldName">${folderName ? esc(folderName) : 'None chosen'}</small></div><div style="display:flex;gap:6px">${folderName ? '<button class="btn" data-set="rescanfolder">Rescan</button>' : ''}<button class="btn" data-set="watch">${folderName ? 'Change' : 'Choose'}</button></div></div>` : ''}
   <div class="srow"><div><b>Listening stats</b><br><small>${S.set.privateSession ? 'Private session is on' : 'Top songs, artists and listening time · on this device only'}</small></div><button class="btn" data-set="stats">Open</button></div>
+  ${NATIVE ? `<div class="srow"><div><b>Notification controls</b><br><small>${notifAllowed() ? 'On · play, pause and skip from the notification panel and lock screen' : 'Off · turn on to control music from the notification panel'}</small></div>${notifAllowed() ? '' : '<button class="btn pri" data-set="notif">Turn on</button>'}</div>` : ''}
   <div class="srow"><div><b>Library</b><br><small>${S.tracks.size} songs${usage ? ' · ' + usage : ''}</small></div><div style="display:flex;gap:6px"><button class="btn" data-set="addfiles">Add</button><button class="btn dan" data-set="clear" ${S.tracks.size ? '' : 'disabled'}>Clear</button></div></div>
   ${S.persistOK ? '' : '<div class="srow"><small style="color:#ff4d5e">This device blocks storage, so your library resets when the app closes.</small></div>'}
   <div class="srow" style="display:${MOBILE ? 'none' : 'block'}"><b>Keyboard shortcuts</b><div class="kbd" style="margin-top:8px"><kbd>Space</kbd><span>Play / pause</span><kbd>← →</kbd><span>Seek 5 seconds</span><kbd>Shift + ← →</kbd><span>Previous / next song</span><kbd>↑ ↓</kbd><span>Volume</span><kbd>M</kbd><span>Mute</span><kbd>S</kbd><span>Shuffle</span><kbd>R</kbd><span>Repeat</span><kbd>L</kbd><span>Favorite</span><kbd>/</kbd><span>Search</span></div></div>
@@ -1978,6 +2004,7 @@ async function openSettings() {
     b.querySelector('[data-set=unhide]')?.addEventListener('click', async () => { S.hidden.clear(); lsSet('pp.hidden', []); await closeTop(); scanDevice(); });
     b.querySelector('[data-set=watch]')?.addEventListener('click', async () => { await closeTop(); watchFolder(); });
     b.querySelector('[data-set=rescanfolder]')?.addEventListener('click', async () => { await closeTop(); if (!(await rescanFolder(true))) toast("Couldn't open the music folder"); });
+    const nfB = b.querySelector('[data-set=notif]'); if (nfB) nfB.onclick = async () => { await closeTop(); askNotifications(true); };
     b.querySelector('[data-set=stats]').onclick = async () => { await closeTop(); await closeAll(); S.q = ''; $('#q').value = ''; $('#searchBox').classList.remove('has'); S.view = { tab: 'home', detail: { type: 'stats' } }; render(); view.scrollTop = 0; pushDetailHist(); };
     b.querySelector('[data-set=addfiles]').onclick = async () => { await closeTop(); addMenu(); };
     b.querySelector('[data-set=clear]').onclick = async () => { await closeTop(); if (await confirm2('Clear library?', `All ${S.tracks.size} songs, playlists and favorites will be removed from muSync. Files on your device aren't touched.${NATIVE ? ' Songs on this device come back the next time muSync scans (turn off “Find new music automatically” to stop that).' : ''}`, 'Clear')) { await clearLibrary(); } };
@@ -2100,6 +2127,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { H.t
   if (wantPlay) { A.resume(); if (audio.paused && !audio.ended && S.cur) play(); }
   if (NATIVE) {
     if (S.permPending) { S.permPending = false; if (window.CastelMedia.hasPermission()) scanDevice(); }
+    if (notifAllowed()) syncNative();
     else if (S.set.autoScan && Date.now() - S.lastScan > 30000 && window.CastelMedia.hasPermission()) scanDevice({ silent: true });
   }
 });
