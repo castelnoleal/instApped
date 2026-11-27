@@ -50,6 +50,8 @@ import java.util.regex.Pattern;
  *                             or {error:"permission", permanent:boolean} / {error:"..."}.
  *                             url/artUrl are served by the app (HTTP range requests work, so seeking works).
  *   openSettings()         -> opens this app's Android settings page (to grant a permanently denied permission)
+ *   notificationsAllowed() -> boolean: may the app show its controls in the notification panel?
+ *   requestNotifications(cb) -> asks for it (Android 13+), then window[cb](json) {granted, permanent}
  *   update(json)           -> sync the notification / lock screen / headset controls:
  *                             {state:"playing"|"paused"|"none", title, artist, album, duration(ms), position(ms),
  *                              rate, mediaId (device track id, for artwork), art (small data: URL), hasPrev, hasNext}
@@ -103,7 +105,7 @@ public class MediaBridge implements MainActivity.MediaHooks {
     @JavascriptInterface public void engineLoad(String id, double startMs, boolean play, int tok) {
         long mid;
         try { mid = Long.parseLong(id); } catch (Exception e) { return; }
-        activity.runOnUiThread(() -> { if (hasPermission()) engine.load(mid, (long) startMs, play, tok); });
+        activity.runOnUiThread(() -> { long t0 = android.os.SystemClock.elapsedRealtime(); if (hasPermission()) engine.load(mid, (long) startMs, play, tok); long ms = android.os.SystemClock.elapsedRealtime() - t0; if (ms > 150) Log.w(TAG, "MEDIA_SLOW:load:" + ms + "ms"); });
     }
     @JavascriptInterface public void enginePlay() { activity.runOnUiThread(engine::play); }
     @JavascriptInterface public void enginePause() { activity.runOnUiThread(engine::pause); }
@@ -120,7 +122,7 @@ public class MediaBridge implements MainActivity.MediaHooks {
     @JavascriptInterface public String engineEffects(String json) {
         final String[] out = {"{}"};
         final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
-        activity.runOnUiThread(() -> { try { out[0] = engine.effects(json); } finally { done.countDown(); } });
+        activity.runOnUiThread(() -> { long t0 = android.os.SystemClock.elapsedRealtime(); try { out[0] = engine.effects(json); } finally { done.countDown(); long ms = android.os.SystemClock.elapsedRealtime() - t0; if (ms > 150) Log.w(TAG, "MEDIA_SLOW:effects:" + ms + "ms"); } });
         try { done.await(1500, java.util.concurrent.TimeUnit.MILLISECONDS); } catch (InterruptedException ignored) { }
         return out[0];
     }
@@ -164,6 +166,21 @@ public class MediaBridge implements MainActivity.MediaHooks {
                 executor.execute(() -> reply(callback, query()));
             });
         });
+    }
+
+    @JavascriptInterface public boolean notificationsAllowed() {
+        try { return activity.notificationsAllowed(); } catch (Exception e) { return true; }
+    }
+
+    @JavascriptInterface public void requestNotifications(String callback) {
+        if (!validCallback(callback)) return;
+        final String perm = "android.permission.POST_NOTIFICATIONS";
+        activity.runOnUiThread(() -> activity.requestNotificationPermissionThen(granted -> {
+            boolean ok = granted && activity.notificationsAllowed();
+            boolean permanent = !ok && (Build.VERSION.SDK_INT < 33 || (!activity.shouldShowRequestPermissionRationale(perm) && activity.askedBefore(perm)));
+            activity.markAsked(perm);
+            reply(callback, "{\"granted\":" + ok + ",\"permanent\":" + permanent + "}");
+        }));
     }
 
     @JavascriptInterface public void openSettings() {

@@ -340,6 +340,9 @@ final class NativeAudio {
     /** Volume boost as plain gain followed by a fast limiter. Returns false where unavailable. */
     private boolean applyDynamics(int boost, boolean on) {
         if (Build.VERSION.SDK_INT < 28 || session <= 0 || dynFailed) return false;
+        // Not needed (no boost, no bass, no raised EQ band): don't build it. Setting it up talks
+        // to Android's audio server and can hold up the app for a moment.
+        if (!on && dyn == null) return true;
         try {
             if (dyn == null) {
                 // Every stage needs at least one band, even switched off: Android rejects 0.
