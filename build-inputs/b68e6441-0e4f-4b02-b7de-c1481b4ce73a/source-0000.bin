@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KodeX Key Maker</title>
+<meta name="robots" content="noindex">
+<style>
+:root { --bg: #0a0d1a; --panel: #121734; --line: #2f3a86; --text: #eef1ff; --mute: #9aa4bd; --gold: #f0b429; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
+main { max-width: 720px; margin: auto; padding: 20px 16px 60px; }
+h1 { font-size: 22px; margin: 0 0 4px; } h2 { font-size: 16px; margin: 0 0 8px; color: var(--gold); }
+p { color: var(--mute); margin: 0 0 10px; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-top: 14px; }
+label { display: block; font-size: 13px; color: var(--mute); margin: 8px 0 4px; }
+input, textarea, select { width: 100%; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: #0d1230; color: var(--text); font: inherit; }
+textarea { font: 13px/1.4 ui-monospace, Menlo, monospace; }
+.row { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 10px; }
+button { margin-top: 10px; padding: 10px 16px; border-radius: 10px; border: 0; background: #3347f0; color: #fff; font: 700 14px system-ui, sans-serif; cursor: pointer; }
+button.ghost { background: transparent; border: 1px solid var(--line); }
+.out { white-space: pre-wrap; word-break: break-all; font: 13px/1.5 ui-monospace, Menlo, monospace; background: #0d1230; border-radius: 10px; padding: 10px; margin-top: 10px; min-height: 2em; }
+.ok { color: #7be0a0; } .bad { color: #ff8fa0; }
+@media (max-width: 520px) { .row { grid-template-columns: 1fr 1fr; } .row > :last-child { grid-column: 1 / -1; } }
+</style>
+</head>
+<body>
+<main>
+<h1>KodeX Key Maker</h1>
+<p>For MEIOCG only. Makes KodeX Premium keys with your private key, on this device: nothing is sent anywhere. Keep the private key file secret: anyone who has it can make keys. Do not put this page or the key file online.</p>
+
+<section>
+<h2>1 · Your private key</h2>
+<p>Open the private key file (<code>kodex-premium-private-key.jwk.json</code>), or paste what is in it.</p>
+<input type="file" id="file" accept=".json,application/json">
+<label for="jwk">Private key</label>
+<textarea id="jwk" rows="4" placeholder='{"kty":"EC","crv":"P-256",…}'></textarea>
+<div class="out" id="keyState">No key loaded.</div>
+</section>
+
+<section>
+<h2>2 · Make keys</h2>
+<div class="row">
+  <div><label for="days">Premium for (days, 0 = no end)</label><input id="days" type="number" min="0" max="65535" value="365"></div>
+  <div><label for="count">How many</label><input id="count" type="number" min="1" max="200" value="1"></div>
+  <div><label for="note">Note (for you)</label><input id="note" placeholder="Who it is for, how they paid"></div>
+</div>
+<p style="margin-top:8px">The days count from today. The person opens KodeX → Settings → <b>Have a Premium code or key? Redeem it</b> and pastes the key.</p>
+<button id="make">Make keys</button> <button class="ghost" id="copy">Copy all</button>
+<div class="out" id="keys"></div>
+</section>
+
+<section>
+<h2>Check a key</h2>
+<textarea id="chk" rows="3" placeholder="KX1-…"></textarea>
+<button class="ghost" id="check">Check</button>
+<div class="out" id="chkOut"></div>
+</section>
+
+<section>
+<h2>Promo codes</h2>
+<p>A promo code is a word you choose (at least 6 letters or digits). Only its hash goes into the app, so a new code needs a new build. On a computer: <code>node scripts/kodex_keys.mjs promo add CODE --days 30 --until 2027-06-30</code>. Or make the line here and add it to <code>app/premium-codes.json</code> → <code>"promos"</code>, then rebuild.</p>
+<div class="row">
+  <div><label for="pcode">Code</label><input id="pcode" placeholder="MEIOCG-VIP"></div>
+  <div><label for="pdays">Premium for (days, 0 = no end)</label><input id="pdays" type="number" min="0" value="30"></div>
+  <div><label for="puntil">Redeem by (optional)</label><input id="puntil" type="date"></div>
+</div>
+<button class="ghost" id="promo">Make the line</button>
+<div class="out" id="promoOut"></div>
+</section>
+</main>
+<script>
+const B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ", EPOCH = Date.UTC(2024, 0, 1), DAY = 864e5;
+const $ = (id) => document.getElementById(id);
+let priv = null, pub = null;
+function b32(bytes) { let bits = 0, v = 0, out = ""; for (const b of bytes) { v = (v << 8) | b; bits += 8; while (bits >= 5) { out += B32[(v >>> (bits - 5)) & 31]; bits -= 5; } v &= (1 << bits) - 1; } if (bits) out += B32[(v << (5 - bits)) & 31]; return out; }
+function unb32(s) { let bits = 0, v = 0; const out = []; for (const ch of s) { const i = B32.indexOf(ch); if (i < 0) return null; v = (v << 5) | i; bits += 5; if (bits >= 8) { out.push((v >>> (bits - 8)) & 255); bits -= 8; } v &= (1 << bits) - 1; } return Uint8Array.from(out); }
+async function loadKey(text) {
+  try {
+    const j = JSON.parse(text);
+    if (j.kty !== "EC" || j.crv !== "P-256" || !j.d) throw new Error("not a P-256 private key");
+    priv = await crypto.subtle.importKey("jwk", { kty: "EC", crv: "P-256", x: j.x, y: j.y, d: j.d }, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+    pub = await crypto.subtle.importKey("jwk", { kty: "EC", crv: "P-256", x: j.x, y: j.y }, { name: "ECDSA", namedCurve: "P-256" }, true, ["verify"]);
+    const spki = new Uint8Array(await crypto.subtle.exportKey("spki", pub));
+    $("keyState").innerHTML = '<span class="ok">Key loaded.</span> Its public key (must match "pub" in app/premium-codes.json):\n' + btoa(String.fromCharCode(...spki));
+  } catch (e) { priv = pub = null; $("keyState").innerHTML = '<span class="bad">That is not the private key file: ' + (e.message || e) + "</span>"; }
+}
+$("file").onchange = async (e) => { const f = e.target.files[0]; if (f) { const t = await f.text(); $("jwk").value = t; loadKey(t); } };
+$("jwk").oninput = () => loadKey($("jwk").value);
+$("make").onclick = async () => {
+  if (!priv) { $("keys").innerHTML = '<span class="bad">Load your private key first.</span>'; return; }
+  const days = Math.max(0, Math.min(65535, Number($("days").value) || 0)), n = Math.max(1, Math.min(200, Number($("count").value) || 1)), note = $("note").value.trim();
+  const issued = Math.floor((Date.now() - EPOCH) / DAY), out = [];
+  for (let i = 0; i < n; i++) {
+    const body = new Uint8Array(10); body[0] = 1; body[1] = 1; crypto.getRandomValues(body.subarray(2, 6));
+    body[6] = issued >> 8; body[7] = issued & 255; body[8] = days >> 8; body[9] = days & 255;
+    const sig = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, priv, body));
+    const all = new Uint8Array(74); all.set(body); all.set(sig, 10);
+    const id = [...body.subarray(2, 6)].map((x) => x.toString(16).padStart(2, "0")).join("");
+    out.push("KX1-" + b32(all).match(/.{1,6}/g).join("-") + "   # id " + id + " · " + (days ? days + " days from " + new Date(EPOCH + issued * DAY).toISOString().slice(0, 10) : "no end") + (note ? " · " + note : ""));
+  }
+  $("keys").textContent = out.join("\n\n");
+};
+$("copy").onclick = () => navigator.clipboard && navigator.clipboard.writeText($("keys").textContent.split("\n").filter(Boolean).map((l) => l.split("   #")[0]).join("\n"));
+$("check").onclick = async () => {
+  const s = $("chk").value.toUpperCase().replace(/[^0-9A-Z]/g, "");
+  const b = s.startsWith("KX1") ? unb32(s.slice(3).replace(/O/g, "0").replace(/[IL]/g, "1")) : null;
+  if (!b || b.length < 74) { $("chkOut").innerHTML = '<span class="bad">Not a complete key.</span>'; return; }
+  if (!pub) { $("chkOut").innerHTML = '<span class="bad">Load your private key first (its public half checks the key).</span>'; return; }
+  const good = await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, pub, b.subarray(10, 74), b.subarray(0, 10));
+  const issued = (b[6] << 8) | b[7], days = (b[8] << 8) | b[9], id = [...b.subarray(2, 6)].map((x) => x.toString(16).padStart(2, "0")).join("");
+  $("chkOut").innerHTML = good ? `<span class="ok">Valid key ${id}</span> · made ${new Date(EPOCH + issued * DAY).toISOString().slice(0, 10)} · ${days ? "Premium until " + new Date(EPOCH + (issued + days) * DAY).toISOString().slice(0, 10) : "no end"}` : '<span class="bad">Not valid: the signature does not match this private key.</span>';
+};
+$("promo").onclick = async () => {
+  const code = $("pcode").value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (code.length < 6) { $("promoOut").innerHTML = '<span class="bad">At least 6 letters or digits.</span>'; return; }
+  const h = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("kodex-promo|" + code)))].map((x) => x.toString(16).padStart(2, "0")).join("");
+  const e = { h, days: Number($("pdays").value) || 0 }; if ($("puntil").value) e.until = $("puntil").value;
+  $("promoOut").textContent = JSON.stringify(e);
+};
+</script>
+</body>
+</html>
