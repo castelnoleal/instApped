@@ -1,9 +1,17 @@
 {
   "buildId": "7dbeea86-c30d-43b1-96e3-d1231f230317",
-  "status": "running",
-  "message": "Verifying generated APK and AAB",
-  "progress": 92,
+  "status": "success",
   "runId": 45961139451,
   "runUrl": "https://github.com/castelnoleal/instApped/actions/runs/45961139451",
-  "updatedAt": "2026-11-27T07:53:21Z"
+  "artifactId": 15180743536,
+  "artifactUrl": "https://github.com/castelnoleal/instApped/actions/runs/45961139451/artifacts/15180743536",
+  "buildApkUrl": "https://castel-app-factory-api.nolealtohka.workers.dev/download/7dbeea86-c30d-43b1-96e3-d1231f230317/apk",
+  "buildAabUrl": "https://castel-app-factory-api.nolealtohka.workers.dev/download/7dbeea86-c30d-43b1-96e3-d1231f230317/aab",
+  "testBuild": false,
+  "signing": true,
+  "testApkUrl": null,
+  "testAabUrl": null,
+  "apk": "MEIOCG Swiss.apk",
+  "aab": "MEIOCG Swiss.aab",
+  "updatedAt": "2026-11-27T07:53:29Z"
 }
