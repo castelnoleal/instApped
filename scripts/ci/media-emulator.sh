@@ -102,11 +102,22 @@ wait_log "MEDIA_TEST:EVENT:pause" 10 || fail "the Pause control did not reach th
 sleep 3
 adb logcat -d | grep "MEDIA_TEST:POS" | tail -n 1 | grep -q ":paused:" || fail "player did not pause from the media control"
 adb shell dumpsys media_session | grep -E "state=PlaybackState \{state=(2|PAUSED)" >/dev/null || fail "media session did not show paused"
+# Paused from the notification with the app in the background: the controls must stay, so the
+# user can press Play again, even after a while.
+has_banner() { adb shell dumpsys notification --noredact | grep -E "NotificationRecord.*pkg=$PKG" >/dev/null; }
+has_banner || { adb shell dumpsys notification --noredact > "$OUT/notifications_after_pause.txt"; fail "the notification disappeared when paused"; }
+adb exec-out screencap -p > "$OUT/2b-after-pause.png"
+sleep 45
+adb shell pidof "$PKG" >/dev/null || fail "Android closed the app 45 s after pausing"
+has_banner || { adb shell dumpsys notification --noredact > "$OUT/notifications_after_pause.txt"; adb logcat -d > "$OUT/logcat_pause.txt"; fail "the notification disappeared 45 s after pausing"; }
+adb shell dumpsys media_session | grep -E "state=PlaybackState \{state=(2|PAUSED)" >/dev/null || fail "media session lost while paused"
+echo "Notification stays while paused"
 adb logcat -c
 adb shell cmd media_session dispatch play >/dev/null 2>&1 || adb shell media dispatch play >/dev/null 2>&1 || true
 wait_log "MEDIA_TEST:EVENT:play" 10 || fail "the Play control did not reach the player"
 sleep 3
 adb logcat -d | grep "MEDIA_TEST:POS" | tail -n 1 | grep -q ":playing:" || fail "player did not resume from the media control (app in background)"
+has_banner || fail "the notification did not come back after Play"
 adb shell cmd statusbar expand-notifications; sleep 3
 adb exec-out screencap -p > "$OUT/3-notification-background.png"
 adb shell cmd statusbar collapse
