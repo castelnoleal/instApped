@@ -117,7 +117,13 @@ adb logcat -c
 adb shell cmd media_session dispatch play >/dev/null 2>&1 || adb shell media dispatch play >/dev/null 2>&1 || true
 wait_log "MEDIA_TEST:EVENT:play" 10 || fail "the Play control did not reach the player"
 sleep 3
-adb logcat -d | grep "MEDIA_TEST:POS" | tail -n 1 | grep -q ":playing:" || fail "player did not resume from the media control (app in background)"
+# Ask Android itself: the page's own timers are slowed down this long in the background.
+for _ in $(seq 1 10); do adb shell dumpsys media_session | grep -E "state=PlaybackState \{state=(3|PLAYING)" >/dev/null && break; sleep 1; done
+adb shell dumpsys media_session | grep -E "state=PlaybackState \{state=(3|PLAYING)" >/dev/null || fail "media session did not show playing after Play (app in background)"
+uid=$(adb shell dumpsys package "$PKG" | grep -m1 -oE "userId=[0-9]+" | cut -d= -f2)
+adb shell dumpsys audio > "$OUT/audio_after_play.txt"
+grep -E "u/pid:${uid}/[0-9]+ .*state:started" "$OUT/audio_after_play.txt" >/dev/null || { grep -E "u/pid:${uid}/" "$OUT/audio_after_play.txt" | head -n 5; fail "Android's player did not resume after Play (app in background)"; }
+echo "Play resumed in the background after 45 s paused"
 has_banner || fail "the notification did not come back after Play"
 adb shell cmd statusbar expand-notifications; sleep 3
 adb exec-out screencap -p > "$OUT/3-notification-background.png"
