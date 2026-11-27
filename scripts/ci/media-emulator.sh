@@ -122,7 +122,14 @@ for _ in $(seq 1 10); do adb shell dumpsys media_session | grep -E "state=Playba
 adb shell dumpsys media_session | grep -E "state=PlaybackState \{state=(3|PLAYING)" >/dev/null || fail "media session did not show playing after Play (app in background)"
 uid=$(adb shell dumpsys package "$PKG" | grep -m1 -oE "userId=[0-9]+" | cut -d= -f2)
 adb shell dumpsys audio > "$OUT/audio_after_play.txt"
-grep -E "u/pid:${uid}/[0-9]+ .*state:started" "$OUT/audio_after_play.txt" >/dev/null || { grep -E "u/pid:${uid}/" "$OUT/audio_after_play.txt" | head -n 5; fail "Android's player did not resume after Play (app in background)"; }
+pid=$(adb shell pidof "$PKG" | tr -d '\r')
+echo "uid=$uid pid=$pid"
+grep -E "AudioPlaybackConfiguration|state:" "$OUT/audio_after_play.txt" | grep -E "u/pid:${uid}|/${pid}[ ,)]" | head -n 8 || true
+if ! grep -E "AudioPlaybackConfiguration" "$OUT/audio_after_play.txt" | grep -E "u/pid:${uid}/" | grep -q "state:started"; then
+  echo "--- playback configurations"; grep -E "AudioPlaybackConfiguration" "$OUT/audio_after_play.txt" | head -n 12
+  echo "--- app log"; adb logcat -d --pid="$pid" 2>/dev/null | grep -vE "MEDIA_TEST:POS|chromium" | tail -n 40
+  fail "Android's player did not resume after Play (app in background)"
+fi
 echo "Play resumed in the background after 45 s paused"
 has_banner || fail "the notification did not come back after Play"
 adb shell cmd statusbar expand-notifications; sleep 3

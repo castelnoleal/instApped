@@ -89,8 +89,9 @@ final class NativeAudio {
 
     void play() {
         wantPlay = true;
-        if (cur == null || !prepared) return;
-        if (!requestFocus()) { emitState(); return; }
+        if (cur == null || !prepared) { Log.i(TAG, "MEDIA_ENGINE_PLAY_WAIT:" + (cur != null)); return; }
+        if (!requestFocus()) { Log.w(TAG, "MEDIA_ENGINE_PLAY_NO_FOCUS"); emitState(); return; }
+        Log.i(TAG, "MEDIA_ENGINE_PLAY");
         try {
             cur.start();
             applySpeed(cur);
@@ -101,6 +102,7 @@ final class NativeAudio {
     }
 
     void pause() {
+        Log.i(TAG, "MEDIA_ENGINE_PAUSE");
         wantPlay = false;
         resumeOnGain = false;
         if (cur != null && prepared) { try { if (cur.isPlaying()) cur.pause(); } catch (Exception ignored) { } }
