@@ -124,8 +124,8 @@ uid=$(adb shell dumpsys package "$PKG" | grep -m1 -oE "userId=[0-9]+" | cut -d= 
 adb shell dumpsys audio > "$OUT/audio_after_play.txt"
 pid=$(adb shell pidof "$PKG" | tr -d '\r')
 echo "uid=$uid pid=$pid"
-grep -E "AudioPlaybackConfiguration|state:" "$OUT/audio_after_play.txt" | grep -E "u/pid:${uid}|/${pid}[ ,)]" | head -n 8 || true
-if ! grep -E "AudioPlaybackConfiguration" "$OUT/audio_after_play.txt" | grep -E "u/pid:${uid}/" | grep -q "state:started"; then
+grep -E "AudioPlaybackConfiguration" "$OUT/audio_after_play.txt" | grep -E "u/pid:[0-9]+/${pid} " | cut -c1-160 | head -n 4 || true
+if ! grep -E "AudioPlaybackConfiguration" "$OUT/audio_after_play.txt" | grep -E "u/pid:[0-9]+/${pid} " | grep -q "state:started"; then
   echo "--- playback configurations"; grep -E "AudioPlaybackConfiguration" "$OUT/audio_after_play.txt" | head -n 12
   echo "--- app log"; adb logcat -d --pid="$pid" 2>/dev/null | grep -vE "MEDIA_TEST:POS|chromium" | tail -n 40
   fail "Android's player did not resume after Play (app in background)"
